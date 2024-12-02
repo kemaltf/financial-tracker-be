@@ -1,0 +1,24 @@
+version: '3.8'
+
+services:
+  mysql:
+    image: mysql:8.0 # Menggunakan versi MySQL 8
+    container_name: mysql-container
+    environment:
+      MYSQL_ROOT_PASSWORD: rootpassword # Password root MySQL
+      MYSQL_DATABASE: test # Nama database yang ingin dibuat
+      MYSQL_USER: user # Username untuk akses ke database
+      MYSQL_PASSWORD: password # Password untuk username
+    ports:
+      - '3306:3306' # Port lokal 3306 akan mengarah ke port 3306 di kontainer
+    volumes:
+      - mysql-data:/var/lib/mysql # Volume untuk data persisten
+    networks:
+      - mysql-network
+
+volumes:
+  mysql-data:
+
+networks:
+  mysql-network:
+    driver: bridge

@@ -8,9 +8,10 @@ export const databaseProviders = [
         type: 'mysql',
         host: 'localhost',
         port: 3306,
-        username: 'root',
-        password: 'root',
+        username: 'user',
+        password: 'password',
         database: 'test',
+        // connectTimeout: 60 * 60 * 1000,
         entities: [__dirname + '/../**/*.entity{.ts,.js}'],
         synchronize: true, // Jangan aktifkan di production!
       });
