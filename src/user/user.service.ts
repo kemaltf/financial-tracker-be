@@ -1,24 +1,39 @@
-import { Inject, Injectable } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import { Repository } from 'typeorm';
 import { User } from './user.entity';
+import { InjectRepository } from '@nestjs/typeorm';
+import { CreateUserDto } from './dto/create-user.dto';
+import { HandleErrors } from 'src/common/decorators';
 
 @Injectable()
 export class UserService {
   constructor(
-    @Inject('USER_REPOSITORY') // Menyuntikkan repository User secara otomatis
-    private readonly userRepository: Repository<User>,
+    @InjectRepository(User) private readonly userRepository: Repository<User>,
   ) {}
 
-  async create(userData: Partial<User>): Promise<User> {
-    const user = this.userRepository.create(userData); // Membuat entitas User baru
-    return await this.userRepository.save(user); // Menyimpan user ke database
+  @HandleErrors()
+  async create(userData: CreateUserDto): Promise<User> {
+    const user = this.userRepository.create(userData);
+    const tes = await this.userRepository.save(user);
+    return tes;
   }
 
   async findAll(): Promise<User[]> {
-    return this.userRepository.find(); // Mengambil semua data user
+    return this.userRepository.find();
   }
 
-  async findOne(id: number): Promise<User> {
-    return this.userRepository.findOne({ where: { id } }); // Mengambil user berdasarkan ID
+  async findOne(id: string): Promise<User | null> {
+    return this.userRepository.findOne({ where: { id } });
+  }
+
+  async findOneByUsername(username: string): Promise<User | null> {
+    return this.userRepository.findOne({ where: { username } });
+  }
+
+  async findUniqueExcPass(id: string): Promise<User | null> {
+    return this.userRepository.findOne({
+      where: { id },
+      select: ['id', 'username', 'email'],
+    });
   }
 }
