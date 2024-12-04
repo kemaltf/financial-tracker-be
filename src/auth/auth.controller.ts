@@ -66,13 +66,15 @@ export class AuthController {
     @Req() req: Request, // Use Request to access cookies
     @Res({ passthrough: true }) response: Response,
   ) {
-    const refreshToken = req.cookies['refreshToken']; // Get refresh token from cookies
+    console.log('kesini', req.cookies);
+    const refreshToken = req.cookies?.['refreshToken']; // Get refresh token from cookies
 
-    console.log(refreshToken);
+    console.log('tes', refreshToken);
 
     if (!refreshToken) {
       throw new UnauthorizedException('Refresh token not found');
     }
+
     const accessToken = await this.authService.refreshToken(refreshToken);
     const isProduction = false;
 
