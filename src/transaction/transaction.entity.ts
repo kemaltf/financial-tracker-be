@@ -1,3 +1,4 @@
+import { Store } from 'src/store/store.entity';
 import { TransactionAddress } from 'src/transactionAddress/transaction-address.entity';
 import { TransactionDetail } from 'src/transactionDetail/transaction-detail.entity';
 import { TransactionType } from 'src/transactionType/transaction-type.entity';
@@ -63,4 +64,7 @@ export class Transaction {
     (transactionAddress) => transactionAddress.transaction,
   )
   address: TransactionAddress[];
+
+  @ManyToOne(() => Store, (store) => store.transactions)
+  store: Store;
 }
