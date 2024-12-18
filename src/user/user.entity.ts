@@ -1,10 +1,12 @@
 // src/user/user.entity.ts
+import { Transaction } from 'src/transaction/transaction.entity';
 import {
   Entity,
   PrimaryGeneratedColumn,
   Column,
   CreateDateColumn,
   UpdateDateColumn,
+  OneToMany,
 } from 'typeorm';
 
 export enum UserRole {
@@ -44,4 +46,7 @@ export class User {
 
   @UpdateDateColumn()
   updatedAt: Date;
+
+  @OneToMany(() => Transaction, (transaction) => transaction.user)
+  Transactions: Transaction[];
 }
