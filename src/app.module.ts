@@ -5,6 +5,7 @@ import { ConfigModule } from '@nestjs/config';
 import { AuthModule } from './auth/auth.module';
 import { APP_GUARD } from '@nestjs/core';
 import { JwtAuthGuard } from './auth/jwt-auth.guard';
+import { TransactionTypeModule } from './transactionType/transaction-type.module';
 import { TransactionModule } from './transaction/transaction.module';
 
 @Module({
@@ -12,6 +13,7 @@ import { TransactionModule } from './transaction/transaction.module';
     DatabaseModule,
     UserModule,
     AuthModule,
+    TransactionTypeModule,
     TransactionModule,
     ConfigModule.forRoot({
       envFilePath: '.env.development.local',

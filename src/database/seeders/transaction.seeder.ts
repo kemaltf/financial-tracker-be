@@ -1,9 +1,9 @@
 import { DataSource } from 'typeorm';
-import { Transaction } from '../../transaction/transaction.entity';
+import { TransactionType } from '../../transactionType/transaction-type.entity';
 
 export class TransactionSeeder {
   public static async run(dataSource: DataSource): Promise<void> {
-    const transactionRepository = dataSource.getRepository(Transaction);
+    const transactionRepository = dataSource.getRepository(TransactionType);
 
     await transactionRepository.clear();
 

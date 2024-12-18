@@ -1,6 +1,6 @@
 import { DataSource } from 'typeorm';
 import { SeederManager } from './seeders';
-import { Transaction } from 'src/transaction/transaction.entity';
+import { TransactionType } from 'src/transactionType/transaction-type.entity';
 
 const AppDataSource = new DataSource({
   type: 'mysql', // or your DB type
@@ -9,7 +9,7 @@ const AppDataSource = new DataSource({
   username: 'user', // your DB username
   password: 'password', // your DB password
   database: 'test', // your DB name
-  entities: [Transaction],
+  entities: [TransactionType],
   synchronize: true, // Jangan aktifkan di production
 });
 
