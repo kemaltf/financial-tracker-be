@@ -1,4 +1,5 @@
 import { TransactionType } from 'src/transactionType/transaction-type.entity';
+import { User } from 'src/user/user.entity';
 import {
   Entity,
   PrimaryGeneratedColumn,
@@ -14,8 +15,9 @@ export class Transaction {
   @PrimaryGeneratedColumn()
   id: number;
 
-  @Column({ type: 'int' })
-  user_id: number;
+  @ManyToOne(() => User, (user) => user.Transactions)
+  @JoinColumn({ name: 'user_id' })
+  user: User;
 
   @ManyToOne(
     () => TransactionType,
