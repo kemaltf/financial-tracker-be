@@ -1,4 +1,4 @@
-import { Module, OnModuleInit } from '@nestjs/common';
+import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { Account } from './account.entity';
 import { AccountController } from './account.controller';
@@ -17,10 +17,4 @@ import { AccountingAccountModule } from 'src/accounting-account/accounting-accou
   controllers: [AccountController],
   exports: [AccountSeeder],
 })
-export class AccountModule implements OnModuleInit {
-  constructor(private readonly account: AccountSeeder) {}
-
-  async onModuleInit() {
-    await this.account.seed(); // Jalankan seeder saat module diinisialisasi
-  }
-}
+export class AccountModule {}

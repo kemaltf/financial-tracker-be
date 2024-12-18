@@ -7,7 +7,8 @@ import { APP_GUARD } from '@nestjs/core';
 import { JwtAuthGuard } from './auth/jwt-auth.guard';
 import { AccountTypeModule } from './account-types/account-type.module';
 import { AccountModule } from './account/account.module';
-// import { AccountingAccountModule } from './accounting-account/accounting-account.module';
+import { AccountingAccountModule } from './accounting-account/accounting-account.module';
+import { SeederModule } from './seeder.module';
 
 @Module({
   imports: [
@@ -15,7 +16,8 @@ import { AccountModule } from './account/account.module';
     UserModule,
     AccountModule,
     AuthModule,
-    // AccountingAccountModule,
+    AccountingAccountModule,
+    SeederModule,
     AccountTypeModule,
     ConfigModule.forRoot({
       envFilePath: '.env.development.local',
@@ -27,10 +29,6 @@ import { AccountModule } from './account/account.module';
       provide: APP_GUARD,
       useClass: JwtAuthGuard,
     },
-    // {
-    //   provide: APP_GUARD,
-    //   useClass: ThrottlerGuard,
-    // },
   ],
 })
 export class AppModule {}
