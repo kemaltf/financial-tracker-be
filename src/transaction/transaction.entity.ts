@@ -1,3 +1,5 @@
+import { TransactionAddress } from 'src/transactionAddress/transaction-address.entity';
+import { TransactionDetail } from 'src/transactionDetail/transaction-detail.entity';
 import { TransactionType } from 'src/transactionType/transaction-type.entity';
 import { User } from 'src/user/user.entity';
 import { Wallet } from 'src/wallet/wallet.entity';
@@ -9,6 +11,7 @@ import {
   UpdateDateColumn,
   ManyToOne,
   JoinColumn,
+  OneToMany,
 } from 'typeorm';
 
 @Entity('transactions')
@@ -48,4 +51,16 @@ export class Transaction {
   @ManyToOne(() => Wallet, (wallet) => wallet.transactions)
   @JoinColumn({ name: 'wallet_id' })
   wallet: Wallet;
+
+  @OneToMany(
+    () => TransactionDetail,
+    (transactionDetail) => transactionDetail.transaction,
+  )
+  details: TransactionDetail[];
+
+  @OneToMany(
+    () => TransactionAddress,
+    (transactionAddress) => transactionAddress.transaction,
+  )
+  address: TransactionAddress[];
 }

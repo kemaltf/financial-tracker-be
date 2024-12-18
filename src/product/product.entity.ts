@@ -1,4 +1,5 @@
 import { Category } from 'src/category/category.entity';
+import { TransactionDetail } from 'src/transactionDetail/transaction-detail.entity';
 import {
   Entity,
   PrimaryGeneratedColumn,
@@ -6,6 +7,7 @@ import {
   CreateDateColumn,
   UpdateDateColumn,
   ManyToMany,
+  OneToMany,
 } from 'typeorm';
 
 @Entity('products')
@@ -33,4 +35,10 @@ export class Product {
 
   @ManyToMany(() => Category, (category) => category.products)
   categories: Category[];
+
+  @OneToMany(
+    () => TransactionDetail,
+    (transactionDetail) => transactionDetail.product,
+  )
+  transactionDetails: TransactionDetail[];
 }

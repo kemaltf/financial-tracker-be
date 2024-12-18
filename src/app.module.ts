@@ -10,6 +10,8 @@ import { TransactionModule } from './transaction/transaction.module';
 import { WalletModule } from './wallet/wallet.module';
 import { ProductModule } from './product/product.module';
 import { CategoryModule } from './category/category.module';
+import { TransactionDetailModule } from './transactionDetail/transaction-detail.module';
+import { TransactionAddressModule } from './transactionAddress/transaction-address.module';
 
 @Module({
   imports: [
@@ -21,6 +23,8 @@ import { CategoryModule } from './category/category.module';
     WalletModule,
     ProductModule,
     CategoryModule,
+    TransactionDetailModule,
+    TransactionAddressModule,
     ConfigModule.forRoot({
       envFilePath: '.env.development.local',
       isGlobal: true,
