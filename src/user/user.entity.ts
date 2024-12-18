@@ -1,5 +1,6 @@
 // src/user/user.entity.ts
 import { Transaction } from 'src/transaction/transaction.entity';
+import { Wallet } from 'src/wallet/wallet.entity';
 import {
   Entity,
   PrimaryGeneratedColumn,
@@ -49,4 +50,7 @@ export class User {
 
   @OneToMany(() => Transaction, (transaction) => transaction.user)
   Transactions: Transaction[];
+
+  @OneToMany(() => Wallet, (wallet) => wallet.user)
+  wallets: Wallet[];
 }

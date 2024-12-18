@@ -1,5 +1,6 @@
 import { TransactionType } from 'src/transactionType/transaction-type.entity';
 import { User } from 'src/user/user.entity';
+import { Wallet } from 'src/wallet/wallet.entity';
 import {
   Entity,
   PrimaryGeneratedColumn,
@@ -43,4 +44,8 @@ export class Transaction {
 
   @UpdateDateColumn({ type: 'timestamp', name: 'updated_at' })
   updatedAt: Date;
+
+  @ManyToOne(() => Wallet, (wallet) => wallet.transactions)
+  @JoinColumn({ name: 'wallet_id' })
+  wallet: Wallet;
 }

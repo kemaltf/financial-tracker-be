@@ -7,6 +7,7 @@ import { APP_GUARD } from '@nestjs/core';
 import { JwtAuthGuard } from './auth/jwt-auth.guard';
 import { TransactionTypeModule } from './transactionType/transaction-type.module';
 import { TransactionModule } from './transaction/transaction.module';
+import { WalletModule } from './wallet/wallet.module';
 
 @Module({
   imports: [
@@ -15,6 +16,7 @@ import { TransactionModule } from './transaction/transaction.module';
     AuthModule,
     TransactionTypeModule,
     TransactionModule,
+    WalletModule,
     ConfigModule.forRoot({
       envFilePath: '.env.development.local',
       isGlobal: true,
