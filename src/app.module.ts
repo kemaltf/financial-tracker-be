@@ -8,6 +8,8 @@ import { JwtAuthGuard } from './auth/jwt-auth.guard';
 import { TransactionTypeModule } from './transactionType/transaction-type.module';
 import { TransactionModule } from './transaction/transaction.module';
 import { WalletModule } from './wallet/wallet.module';
+import { ProductModule } from './product/product.module';
+import { CategoryModule } from './category/category.module';
 
 @Module({
   imports: [
@@ -17,6 +19,8 @@ import { WalletModule } from './wallet/wallet.module';
     TransactionTypeModule,
     TransactionModule,
     WalletModule,
+    ProductModule,
+    CategoryModule,
     ConfigModule.forRoot({
       envFilePath: '.env.development.local',
       isGlobal: true,
