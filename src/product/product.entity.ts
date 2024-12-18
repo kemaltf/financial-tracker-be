@@ -1,4 +1,5 @@
 import { Category } from 'src/category/category.entity';
+import { Store } from 'src/store/store.entity';
 import { TransactionDetail } from 'src/transactionDetail/transaction-detail.entity';
 import {
   Entity,
@@ -8,6 +9,7 @@ import {
   UpdateDateColumn,
   ManyToMany,
   OneToMany,
+  ManyToOne,
 } from 'typeorm';
 
 @Entity('products')
@@ -41,4 +43,7 @@ export class Product {
     (transactionDetail) => transactionDetail.product,
   )
   transactionDetails: TransactionDetail[];
+
+  @ManyToOne(() => Store, (store) => store.products)
+  store: Store;
 }
