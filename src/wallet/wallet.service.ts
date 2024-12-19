@@ -81,8 +81,10 @@ export class WalletService {
   }
 
   // Delete a wallet
-  async remove(id: number): Promise<void> {
-    const wallet = await this.walletRepository.findOne({ where: { id } });
+  async remove(username: string, id: number): Promise<void> {
+    const wallet = await this.walletRepository.findOne({
+      where: { id, user: { username } },
+    });
     if (!wallet) {
       throw new Error('Wallet not found');
     }

@@ -49,7 +49,7 @@ export class WalletController {
   }
 
   @Delete(':id')
-  async remove(@Param('id') id: number) {
-    return this.walletService.remove(id);
+  async remove(@Param('id') id: number, @GetUser() user: User) {
+    return this.walletService.remove(user.username, id);
   }
 }
