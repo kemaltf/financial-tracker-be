@@ -1,6 +1,5 @@
 import { Category } from 'src/category/category.entity';
 import { Store } from 'src/store/store.entity';
-import { TransactionDetail } from 'src/transactionDetail/transaction-detail.entity';
 import {
   Entity,
   PrimaryGeneratedColumn,
@@ -8,7 +7,6 @@ import {
   CreateDateColumn,
   UpdateDateColumn,
   ManyToMany,
-  OneToMany,
   ManyToOne,
 } from 'typeorm';
 
@@ -37,12 +35,6 @@ export class Product {
 
   @ManyToMany(() => Category, (category) => category.products)
   categories: Category[];
-
-  @OneToMany(
-    () => TransactionDetail,
-    (transactionDetail) => transactionDetail.product,
-  )
-  transactionDetails: TransactionDetail[];
 
   @ManyToOne(() => Store, (store) => store.products)
   store: Store;
