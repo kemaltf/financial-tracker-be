@@ -14,6 +14,8 @@ import { TransactionDetailModule } from './transactionDetail/transaction-detail.
 import { TransactionAddressModule } from './transactionAddress/transaction-address.module';
 import { StoreModule } from './store/store.module';
 import { TransactionLogModule } from './transactionLogs/transaction-log.module';
+import { AccountingEntryModule } from './accountingEntry/accounting_entry.module';
+import { AccountModule } from './account/account.module';
 
 @Module({
   imports: [
@@ -29,6 +31,8 @@ import { TransactionLogModule } from './transactionLogs/transaction-log.module';
     TransactionAddressModule,
     StoreModule,
     TransactionLogModule,
+    AccountingEntryModule,
+    AccountModule,
     ConfigModule.forRoot({
       envFilePath: '.env.development.local',
       isGlobal: true,

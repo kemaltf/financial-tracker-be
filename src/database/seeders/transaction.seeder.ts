@@ -5,7 +5,10 @@ export class TransactionSeeder {
   public static async run(dataSource: DataSource): Promise<void> {
     const transactionRepository = dataSource.getRepository(TransactionType);
 
-    await transactionRepository.clear();
+    // await transactionRepository.clear();
+    // Cek jika data sudah ada, jika sudah maka tidak diinsert
+    const transactionCount = await transactionRepository.count();
+    console.log(`⚠️ Data seeder sudah ada: ${transactionCount}`);
 
     const seedData = [
       { name: 'Pemasukan', description: 'Transaksi untuk pemasukan uang' },

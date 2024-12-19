@@ -1,3 +1,4 @@
+import { AccountingEntry } from 'src/accountingEntry/accounting_entry.entity';
 import { Store } from 'src/store/store.entity';
 import { TransactionAddress } from 'src/transactionAddress/transaction-address.entity';
 import { TransactionDetail } from 'src/transactionDetail/transaction-detail.entity';
@@ -71,4 +72,7 @@ export class Transaction {
 
   @OneToMany(() => TransactionLog, (log) => log.transaction)
   logs: TransactionLog[];
+
+  @OneToMany(() => AccountingEntry, (entry) => entry.transaction)
+  entries: AccountingEntry[];
 }
