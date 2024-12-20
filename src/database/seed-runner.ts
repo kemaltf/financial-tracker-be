@@ -7,11 +7,11 @@ import { AccountingEntry } from 'src/accountingEntry/accounting_entry.entity';
 import { User } from 'src/user/user.entity';
 import { Wallet } from 'src/wallet/wallet.entity';
 import { TransactionDetail } from 'src/transactionDetail/transaction-detail.entity';
-import { Product } from 'src/product/product.entity';
 import { Category } from 'src/category/category.entity';
 import { Store } from 'src/store/store.entity';
 import { TransactionLog } from 'src/transactionLogs/transaction-log.entity';
 import { TransactionAddress } from 'src/transactionAddress/transaction-address.entity';
+import { Product } from 'src/product/entity/product.entity';
 
 const AppDataSource = new DataSource({
   type: 'mysql', // or your DB type

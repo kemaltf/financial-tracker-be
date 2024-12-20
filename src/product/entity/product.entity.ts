@@ -8,7 +8,10 @@ import {
   UpdateDateColumn,
   ManyToMany,
   ManyToOne,
+  OneToMany,
 } from 'typeorm';
+import { Image } from 'src/image/image.entity';
+import { ProductVariant } from './product-variant.entity';
 
 @Entity('products')
 export class Product {
@@ -20,6 +23,9 @@ export class Product {
 
   @Column({ type: 'varchar', length: 100 })
   sku: string;
+
+  @Column({ type: 'text' })
+  description: string;
 
   @Column({ type: 'int' })
   stock: number;
@@ -38,4 +44,10 @@ export class Product {
 
   @ManyToOne(() => Store, (store) => store.products)
   store: Store;
+
+  @OneToMany(() => ProductVariant, (variant) => variant.product)
+  variants: ProductVariant[];
+
+  @OneToMany(() => Image, (image) => image.product)
+  images: Image[];
 }
