@@ -1,5 +1,9 @@
 import {
   Controller,
+  Delete,
+  Get,
+  NotFoundException,
+  Param,
   Post,
   UploadedFile,
   UploadedFiles,
@@ -34,5 +38,26 @@ export class ImageController {
   )
   async uploadMultiple(@UploadedFiles() files: Express.Multer.File[]) {
     return await this.imageService.uploadMultipleImages(files);
+  }
+
+  @Get()
+  async getAllImages() {
+    try {
+      const images = await this.imageService.getAllImagesFromDB();
+      return { images };
+    } catch (error) {
+      console.log(error);
+      throw new NotFoundException('No images found in the database');
+    }
+  }
+
+  @Delete(':id')
+  async deleteImage(@Param('id') id: number) {
+    try {
+      const result = await this.imageService.deleteImage(id);
+      return { message: result };
+    } catch (error) {
+      throw new NotFoundException(error.message);
+    }
   }
 }
