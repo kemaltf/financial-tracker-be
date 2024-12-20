@@ -18,25 +18,27 @@ import { AccountingEntryModule } from './accountingEntry/accounting_entry.module
 import { AccountModule } from './account/account.module';
 import { VariantModule } from './variant/variant.module';
 import { ImageModule } from './image/image.module';
+import { AWSS3Module } from './aws/aws-s3.module';
 
 @Module({
   imports: [
-    DatabaseModule,
-    UserModule,
-    AuthModule,
-    TransactionTypeModule,
-    TransactionModule,
-    WalletModule,
-    ProductModule,
-    CategoryModule,
-    TransactionDetailModule,
-    TransactionAddressModule,
-    StoreModule,
-    TransactionLogModule,
-    AccountingEntryModule,
+    AWSS3Module,
     AccountModule,
-    VariantModule,
+    AccountingEntryModule,
+    AuthModule,
+    CategoryModule,
+    DatabaseModule,
     ImageModule,
+    ProductModule,
+    StoreModule,
+    TransactionAddressModule,
+    TransactionDetailModule,
+    TransactionLogModule,
+    TransactionModule,
+    TransactionTypeModule,
+    UserModule,
+    VariantModule,
+    WalletModule,
     ConfigModule.forRoot({
       envFilePath: '.env.development.local',
       isGlobal: true,
