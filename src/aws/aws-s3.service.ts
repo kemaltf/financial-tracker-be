@@ -15,43 +15,70 @@ export class AWSS3Service {
 
   constructor(private readonly configService: ConfigService) {}
 
+  private sanitizeFileName(fileName: string): string {
+    const MAX_FILENAME_LENGTH = 50;
+    const timestamp = Date.now();
+
+    // Hilangkan spasi, karakter khusus, dan batasi panjang nama file
+    const sanitizedFileName = fileName
+      .replace(/\s+/g, '_')
+      .replace(/[^a-zA-Z0-9_.-]/g, '')
+      .substring(0, MAX_FILENAME_LENGTH);
+
+    return `${timestamp}_${sanitizedFileName}`;
+  }
+
   async uploadSingle(fileName: string, file: Buffer, mimeType: string) {
+    const uniqueFileName = this.sanitizeFileName(fileName);
+
     await this.s3Client.send(
       new PutObjectCommand({
         Bucket: this.configService.getOrThrow('AWS_BUCKET_NAME'),
-        Key: fileName,
+        Key: uniqueFileName,
         Body: file,
         ContentType: mimeType,
       }),
     );
 
-    return `https://${this.configService.getOrThrow('AWS_BUCKET_NAME')}.s3.${this.configService.getOrThrow('AWS_REGION')}.amazonaws.com/${fileName}`;
+    const fileUrl = `https://${this.configService.getOrThrow(
+      'AWS_BUCKET_NAME',
+    )}.s3.${this.configService.getOrThrow(
+      'AWS_REGION',
+    )}.amazonaws.com/${encodeURIComponent(uniqueFileName)}`;
+
+    return { fileName: uniqueFileName, fileUrl };
   }
 
   async uploadMultiple(
     files: { fileName: string; file: Buffer; mimeType: string }[],
   ) {
-    const uploadPromises = files.map(({ fileName, file, mimeType }) =>
-      this.s3Client.send(
-        new PutObjectCommand({
-          Bucket: this.configService.getOrThrow('AWS_BUCKET_NAME'),
-          Key: fileName,
-          Body: file,
-          ContentType: mimeType,
-        }),
-      ),
+    const uploadResults = await Promise.all(
+      files.map(async ({ fileName, file, mimeType }) => {
+        const uniqueFileName = this.sanitizeFileName(fileName);
+
+        await this.s3Client.send(
+          new PutObjectCommand({
+            Bucket: this.configService.getOrThrow('AWS_BUCKET_NAME'),
+            Key: uniqueFileName,
+            Body: file,
+            ContentType: mimeType,
+            // ACL: 'public-read', // Atur sesuai kebutuhan
+          }),
+        );
+
+        return {
+          fileName: uniqueFileName,
+          url: `https://${this.configService.getOrThrow(
+            'AWS_BUCKET_NAME',
+          )}.s3.${this.configService.getOrThrow(
+            'AWS_REGION',
+          )}.amazonaws.com/${encodeURIComponent(uniqueFileName)}`,
+        };
+      }),
     );
 
-    // Tunggu semua upload selesai
-    await Promise.all(uploadPromises);
-
-    // Return URLs of all uploaded files
-    return files.map(
-      ({ fileName }) =>
-        `https://${this.configService.getOrThrow('AWS_BUCKET_NAME')}.s3.${this.configService.getOrThrow('AWS_REGION')}.amazonaws.com/${fileName}`,
-    );
+    return uploadResults;
   }
-
   async delete(fileName: string) {
     await this.s3Client.send(
       new DeleteObjectCommand({
