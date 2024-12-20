@@ -1,4 +1,4 @@
-import { Product } from 'src/product/product.entity';
+import { Product } from 'src/product/entity/product.entity';
 import { Transaction } from 'src/transaction/transaction.entity';
 import { TransactionLog } from 'src/transactionLogs/transaction-log.entity';
 import { Entity, PrimaryGeneratedColumn, Column, OneToMany } from 'typeorm';
