@@ -5,7 +5,7 @@ import {
   CreateDateColumn,
   UpdateDateColumn,
   ManyToOne,
-  OneToMany,
+  ManyToMany,
 } from 'typeorm';
 import { Product } from './product.entity';
 import { VariantType } from '../../variant/variant-type.entity';
@@ -40,6 +40,6 @@ export class ProductVariant {
   @UpdateDateColumn({ type: 'datetime', name: 'updated_at' })
   updated_at: Date;
 
-  @OneToMany(() => Image, (image) => image.productVariant)
+  @ManyToMany(() => Image, (image) => image.productVariants)
   images: Image[];
 }

@@ -13,24 +13,31 @@ export function HandleErrors() {
       try {
         return await originalMethod.apply(this, args);
       } catch (error) {
-        console.log(error);
+        console.log('Handle-errors', error);
+
         if (error instanceof QueryFailedError) {
-          const message = error.message.toLowerCase();
+          const driverError = error.driverError;
+          console.log('debugggg', driverError.errno);
 
-          // Contoh penanganan untuk duplicate key error
-          if (message.includes('duplicate key')) {
-            throw new ForbiddenException('Some field already taken');
-          }
+          // Menangani error berdasarkan code
+          if (driverError && driverError.errno) {
+            const errno = driverError.errno;
 
-          // Contoh penanganan untuk foreign key constraint error
-          if (message.includes('foreign key')) {
-            throw new ForbiddenException(
-              'Operation failed due to foreign key constraint',
-            );
+            if (errno === 1062) {
+              // Duplikat key error
+              throw new ForbiddenException('Some field already taken');
+            }
+
+            if (errno === '23503') {
+              // Foreign key constraint error
+              throw new ForbiddenException(
+                'Operation failed due to foreign key constraint',
+              );
+            }
           }
         }
 
-        // Jika error adalah instance dari HttpException, lempar kembali error tersebut
+        // Jika error adalah instance dari HttpException atau UnauthorizedException
         if (
           error instanceof HttpException ||
           error instanceof UnauthorizedException
@@ -38,7 +45,7 @@ export function HandleErrors() {
           throw error;
         }
 
-        // Anda dapat menambahkan logika penanganan error lainnya di sini
+        // Penanganan error lainnya
         throw new InternalServerErrorException('Internal server error');
       }
     };

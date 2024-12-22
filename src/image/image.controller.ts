@@ -1,4 +1,5 @@
 import {
+  BadRequestException,
   Controller,
   Delete,
   Get,
@@ -25,6 +26,11 @@ export class ImageController {
     }),
   )
   async uploadSingle(@UploadedFile() file: Express.Multer.File) {
+    // Validasi apakah file ada
+    if (!file) {
+      throw new BadRequestException('No file uploaded');
+    }
+
     return await this.imageService.uploadSingleImage(file);
   }
 
@@ -37,6 +43,10 @@ export class ImageController {
     }),
   )
   async uploadMultiple(@UploadedFiles() files: Express.Multer.File[]) {
+    // Validasi apakah ada file yang di-upload
+    if (!files || files.length === 0) {
+      throw new BadRequestException('No files uploaded');
+    }
     return await this.imageService.uploadMultipleImages(files);
   }
 

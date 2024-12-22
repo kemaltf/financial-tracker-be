@@ -3,6 +3,7 @@ import { AWSS3Service } from '../aws/aws-s3.service';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Image } from './image.entity';
+import { HandleErrors } from 'src/common/decorators';
 
 @Injectable()
 export class ImageService {
@@ -12,6 +13,7 @@ export class ImageService {
     private readonly imageRepository: Repository<Image>,
   ) {}
 
+  @HandleErrors()
   async uploadSingleImage(file: Express.Multer.File): Promise<Image> {
     const uploadResult = await this.s3Service.uploadSingle(
       file.originalname,
