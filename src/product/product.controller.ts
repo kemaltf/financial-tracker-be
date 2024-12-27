@@ -6,6 +6,7 @@ import {
   Body,
   Put,
   Delete,
+  Query,
 } from '@nestjs/common';
 import { ProductService } from './product.service';
 import { CreateProductDto } from './dto/create-product.dto';
@@ -17,8 +18,20 @@ export class ProductController {
 
   // Mendapatkan semua produk
   @Get()
-  async findAll(): Promise<Product[]> {
-    return this.productService.findAll();
+  async findAll(
+    @Query('page') page: number,
+    @Query('limit') limit: number,
+    @Query('sortBy') sortBy: string,
+    @Query('sortDirection') sortDirection: 'ASC' | 'DESC',
+    @Query() filters: Record<string, any>,
+  ) {
+    return this.productService.findAll(
+      Number(page) || 1,
+      Number(limit) || 10,
+      sortBy || 'name',
+      sortDirection || 'ASC',
+      filters,
+    );
   }
 
   // Mendapatkan produk berdasarkan ID
