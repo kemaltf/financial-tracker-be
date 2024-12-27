@@ -1,9 +1,10 @@
 import { AccountingEntry } from 'src/accountingEntry/accounting_entry.entity';
+import { Customer } from 'src/customer/entity/customer.entity';
 import { Store } from 'src/store/store.entity';
-import { TransactionAddress } from 'src/transactionAddress/transaction-address.entity';
-import { TransactionDetail } from 'src/transactionDetail/transaction-detail.entity';
-import { TransactionLog } from 'src/transactionLogs/transaction-log.entity';
-import { TransactionType } from 'src/transactionType/transaction-type.entity';
+import { TransactionAddress } from '@app/transaction/transactionAddress/transaction-address.entity';
+import { TransactionDetail } from '@app/transaction/transactionDetail/transaction-detail.entity';
+import { TransactionLog } from '@app/transaction/transactionLogs/transaction-log.entity';
+import { TransactionType } from '@app/transaction/transactionType/transaction-type.entity';
 import { User } from 'src/user/user.entity';
 import { Wallet } from 'src/wallet/wallet.entity';
 import {
@@ -75,4 +76,10 @@ export class Transaction {
 
   @OneToMany(() => AccountingEntry, (entry) => entry.transaction)
   entries: AccountingEntry[];
+
+  @ManyToOne(() => Customer, (customer) => customer.transactions, {
+    nullable: true,
+  })
+  @JoinColumn({ name: 'customer_id' })
+  customer: Customer;
 }

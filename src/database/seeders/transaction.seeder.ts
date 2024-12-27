@@ -1,5 +1,5 @@
 import { DataSource } from 'typeorm';
-import { TransactionType } from '../../transactionType/transaction-type.entity';
+import { TransactionType } from '../../transaction/transactionType/transaction-type.entity';
 
 export class TransactionSeeder {
   public static async run(dataSource: DataSource): Promise<void> {
