@@ -1,5 +1,7 @@
 import {
   ConflictException,
+  HttpException,
+  HttpStatus,
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
@@ -64,8 +66,11 @@ export class ProductService {
           id: In(createProductDto.categories),
         });
 
-        if (!categories) {
-          throw new Error('Categories/category not found');
+        if (!categories.length) {
+          throw new HttpException(
+            'Categories/category not found',
+            HttpStatus.NOT_FOUND,
+          );
         }
 
         // 2. Menemukan store berdasarkan ID yang diberikan
@@ -74,7 +79,7 @@ export class ProductService {
         });
 
         if (!store) {
-          throw new Error('Store not found');
+          throw new HttpException('Store not found', HttpStatus.NOT_FOUND);
         }
 
         // Jika SKU tidak disediakan, buat SKU secara otomatis
@@ -162,7 +167,6 @@ export class ProductService {
 
               // Hubungkan gambar ke varian produk (Many-to-Many)
               productVariant.images = images;
-              // console.log('KESINI?');
               // await transactionalEntityManager.save(Image, productVariant); // Simpan perubahan
             }
 
@@ -182,7 +186,10 @@ export class ProductService {
           });
 
           if (images.length !== createProductDto.imageIds.length) {
-            throw new Error('Some product images not found'); // Tangani jika ada ID gambar yang tidak valid
+            throw new HttpException(
+              'Some product images not found',
+              HttpStatus.NOT_FOUND,
+            ); // Tangani jika ada ID gambar yang tidak valid
           }
 
           // Hubungkan gambar ke produk (Many-to-Many)

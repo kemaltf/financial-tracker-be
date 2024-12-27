@@ -39,8 +39,6 @@ export class ImageService {
       })),
     );
 
-    console.log(uploadResults);
-
     const images = files.map((file, index) =>
       this.imageRepository.create({
         key: uploadResults[index].fileName,

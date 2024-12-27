@@ -32,9 +32,7 @@ export class AuthController {
     @Body() signInDto: LoginUserDto,
     @Res({ passthrough: true }) response: Response,
   ) {
-    console.log(signInDto);
     const signIn = await this.authService.signIn(signInDto);
-    console.log(signIn);
     const isProduction = false;
 
     // const signInDummy = {
@@ -66,10 +64,7 @@ export class AuthController {
     @Req() req: Request, // Use Request to access cookies
     @Res({ passthrough: true }) response: Response,
   ) {
-    console.log('kesini', req.cookies);
     const refreshToken = req.cookies?.['refreshToken']; // Get refresh token from cookies
-
-    console.log('tes', refreshToken);
 
     if (!refreshToken) {
       throw new UnauthorizedException('Refresh token not found');
