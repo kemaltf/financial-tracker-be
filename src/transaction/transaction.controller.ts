@@ -1,4 +1,4 @@
-import { Controller, Post, Body } from '@nestjs/common';
+import { Controller, Post, Body, Patch, Param } from '@nestjs/common';
 import { TransactionService } from './transaction.service';
 import { TransactionDTO } from './dto/transaction.dto';
 import { GetUser } from '@app/common/decorators/get-user.decorator';
@@ -15,4 +15,17 @@ export class TransactionController {
   ) {
     return this.transactionService.createTransaction(user.id, transactionData);
   }
+
+  // @Patch(':id')
+  // async updateTransaction(
+  //   @Param('id') transactionId: number,
+  //   @Body() transactionDTO: TransactionDTO,
+  //   @GetUser() user: User,
+  // ) {
+  //   return this.transactionService.updateTransaction(
+  //     user.id,
+  //     transactionId,
+  //     transactionDTO,
+  //   );
+  // }
 }

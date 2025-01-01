@@ -14,16 +14,10 @@ export class AccountingEntry {
   @PrimaryGeneratedColumn()
   id: number;
 
-  @Column()
-  transaction_id: number;
-
   @ManyToOne(() => Transaction, (transaction) => transaction.entries, {
     onDelete: 'CASCADE',
   })
   transaction: Transaction;
-
-  @Column()
-  account_id: number;
 
   @ManyToOne(() => Account, (account) => account.entries, {
     onDelete: 'RESTRICT',

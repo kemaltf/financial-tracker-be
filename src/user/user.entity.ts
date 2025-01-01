@@ -1,4 +1,5 @@
 // src/user/user.entity.ts
+import { TransactionLog } from '@app/transaction/transactionLogs/transaction-log.entity';
 import { Transaction } from 'src/transaction/transaction.entity';
 import { Wallet } from 'src/wallet/wallet.entity';
 import {
@@ -53,4 +54,7 @@ export class User {
 
   @OneToMany(() => Wallet, (wallet) => wallet.user)
   wallets: Wallet[];
+
+  @OneToMany(() => TransactionLog, (log) => log.performed_by)
+  transactionLogs: TransactionLog[];
 }

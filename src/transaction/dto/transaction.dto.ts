@@ -23,6 +23,10 @@ export class TransactionDTO {
   @IsOptional()
   description?: string;
 
+  @IsNumber()
+  @IsOptional()
+  storeId?: number;
+
   @IsOptional()
   address?: {
     recipientName: string;
@@ -34,19 +38,11 @@ export class TransactionDTO {
     phoneNumber: string;
   };
 
+  // Details hanya berisi ID produk dan kuantitas
   @IsArray()
   @IsOptional()
   details?: {
-    // Assuming transaction details have a name and value, but adjust based on your structure
-    name: string;
-    value: number;
+    productId: number; // ID produk
+    quantity: number; // Jumlah produk
   }[];
-
-  @IsOptional()
-  logInfo?: {
-    details: string;
-    performedBy: string;
-    debitAccountId: number;
-    creditAccountId: number;
-  };
 }

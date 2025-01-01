@@ -34,7 +34,7 @@ export class Wallet {
   })
   wallet_type: 'Cash' | 'Bank' | 'PayPal' | 'Other';
 
-  @Column({ type: 'decimal', precision: 10, scale: 2, default: 0.0 })
+  @Column({ type: 'decimal', precision: 15, scale: 2, default: 0 })
   balance: number;
 
   @Column({ type: 'varchar', length: 255, nullable: true })

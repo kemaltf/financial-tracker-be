@@ -1,6 +1,5 @@
 import { Product } from 'src/product/entity/product.entity';
 import { Transaction } from 'src/transaction/transaction.entity';
-import { TransactionLog } from 'src/transaction/transactionLogs/transaction-log.entity';
 import { Entity, PrimaryGeneratedColumn, Column, OneToMany } from 'typeorm';
 
 @Entity()
@@ -22,7 +21,4 @@ export class Store {
 
   @OneToMany(() => Transaction, (transaction) => transaction.store)
   transactions: Transaction[];
-
-  @OneToMany(() => TransactionLog, (log) => log.store)
-  transactionLogs: TransactionLog[];
 }

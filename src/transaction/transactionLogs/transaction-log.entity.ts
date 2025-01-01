@@ -2,12 +2,12 @@ import {
   Entity,
   PrimaryGeneratedColumn,
   Column,
-  ManyToOne,
   CreateDateColumn,
+  ManyToOne,
   UpdateDateColumn,
 } from 'typeorm';
-import { Store } from 'src/store/store.entity';
-import { Transaction } from 'src/transaction/transaction.entity';
+import { Transaction } from '../transaction.entity';
+import { User } from '@app/user/user.entity';
 
 @Entity('transaction_logs')
 export class TransactionLog {
@@ -15,22 +15,21 @@ export class TransactionLog {
   id: number;
 
   @ManyToOne(() => Transaction, (transaction) => transaction.logs, {
-    eager: true,
+    onDelete: 'CASCADE',
   })
   transaction: Transaction;
 
-  @ManyToOne(() => Store, (store) => store.transactionLogs, { eager: true })
-  store: Store;
+  @Column()
+  action: string; // Contoh: "Insert", "Update"
 
-  @Column({ type: 'varchar', length: 255 })
-  action: string;
+  @Column('json', { nullable: true })
+  oldValue: Record<string, any> | null; // Data sebelum perubahan (nullable untuk "Insert" action)
 
-  @Column({ type: 'text', nullable: true })
-  details: string;
+  @Column('json')
+  newValue: Record<string, any>; // Data setelah perubahan
 
-  @Column({ type: 'varchar', length: 50 })
+  @ManyToOne(() => User, { eager: true, onDelete: 'SET NULL', nullable: true })
   performed_by: string;
-
   @CreateDateColumn({ type: 'timestamp' })
   created_at: Date;
 
