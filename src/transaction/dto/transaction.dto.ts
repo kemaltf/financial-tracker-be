@@ -12,6 +12,10 @@ export class TransactionDTO {
   walletId: number;
 
   @IsNumber()
+  @IsOptional()
+  targetWalletId: number;
+
+  @IsNumber()
   @IsNotEmpty()
   transactionTypeId: number;
 

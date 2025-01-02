@@ -10,10 +10,11 @@ import { Wallet } from 'src/wallet/wallet.entity';
 import { AccountingEntry } from 'src/accountingEntry/accounting_entry.entity';
 import { TransactionDTO } from './dto/transaction.dto';
 import { TransactionType } from './transactionType/transaction-type.entity';
-// import { Account } from '@app/account/account.entity';
+import { Account } from '@app/account/account.entity';
 import { TransactionAddress } from './transactionAddress/transaction-address.entity';
 import { TransactionDetail } from './transactionDetail/transaction-detail.entity';
 import { Product } from '@app/product/entity/product.entity';
+import { TransactionLog } from './transactionLogs/transaction-log.entity';
 
 @Injectable()
 export class TransactionService {
@@ -32,6 +33,10 @@ export class TransactionService {
     private transactionDetailRepository: Repository<TransactionDetail>,
     @InjectRepository(Product)
     private productRepository: Repository<Product>,
+    @InjectRepository(Account)
+    private readonly accountRepository: Repository<Account>,
+    @InjectRepository(TransactionLog)
+    private readonly transactionLogRepository: Repository<TransactionLog>,
   ) {}
 
   private isDebitTransaction(transactionTypeName: string): boolean {
@@ -63,6 +68,7 @@ export class TransactionService {
       storeId,
     } = transactionDTO;
 
+    // transaksi itu pasti kan berhubungan sama wallet
     // Menemukan Wallet dan user nya ada ga?
     const wallet = await this.walletRepository.findOne({
       where: { id: walletId, user: { id: userId } },
@@ -71,7 +77,7 @@ export class TransactionService {
       throw new NotFoundException('Wallet not found');
     }
 
-    // Dan TransactionType berdasarkan ID
+    // Tipe transaksinya apa? trf, pemasukan, debt ? dll
     const transactionType = await this.transactionTypeRepository.findOne({
       where: { id: transactionTypeId },
     });
@@ -153,275 +159,280 @@ export class TransactionService {
     }
 
     // Mengatur logika untuk transaksi berdasarkan jenis
-    // await this.handleTransactionTypeCreate(
-    //   transaction,
-    //   amount,
-    //   transactionType,
-    // );
+    await this.handleTransactionType(
+      transaction,
+      transactionType.name,
+      wallet,
+      amount,
+      userId,
+    );
 
     return transaction;
   }
 
-  // async updateTransaction(
-  //   userId: string,
-  //   transactionId: number,
-  //   transactionDTO: TransactionDTO,
-  // ): Promise<Transaction> {
-  //   const { walletId, transactionTypeId, amount, description } = transactionDTO;
+  async handleTransactionType(
+    transaction: Transaction,
+    transactionTypeName: string,
+    wallet: Wallet,
+    amount: number,
+    userId: string,
+  ): Promise<void> {
+    // Ambil akun-akun terkait
+    const cashAccount = await this.accountRepository.findOne({
+      where: { code: '101' },
+    }); // Kas
+    const incomeAccount = await this.accountRepository.findOne({
+      where: { code: '401' },
+    }); // Pendapatan
+    const expenseAccount = await this.accountRepository.findOne({
+      where: { code: '501' },
+    }); // Beban
+    const debtAccount = await this.accountRepository.findOne({
+      where: { code: '201' },
+    }); // Hutang
+    const receivableAccount = await this.accountRepository.findOne({
+      where: { code: '301' },
+    }); // Piutang
+    const equityAccount = await this.accountRepository.findOne({
+      where: { code: '601' },
+    }); // Modal
 
-  //   // Menemukan transaksi yang ingin diedit
-  //   const transaction = await this.transactionRepository.findOne({
-  //     where: { id: transactionId, user: { id: userId } },
-  //     relations: ['wallet', 'transactionType'],
-  //   });
+    if (
+      !cashAccount ||
+      !incomeAccount ||
+      !expenseAccount ||
+      !debtAccount ||
+      !receivableAccount ||
+      !equityAccount
+    ) {
+      throw new Error('Some accounts are missing in the database.');
+    }
 
-  //   if (!transaction) {
-  //     throw new NotFoundException('Transaction not found');
-  //   }
+    const entries: AccountingEntry[] = [];
+    const oldWalletState = { balance: wallet.balance }; // Catat saldo sebelum perubahan
 
-  //   // Menemukan Wallet dan TransactionType baru berdasarkan ID
-  //   const wallet = await this.walletRepository.findOne({
-  //     where: { id: walletId },
-  //   });
-  //   const transactionType = await this.transactionTypeRepository.findOne({
-  //     where: { id: transactionTypeId },
-  //   });
+    switch (transactionTypeName) {
+      case 'Pemasukan':
+        wallet.balance += amount; // Tambahkan saldo ke wallet
+        entries.push(
+          this.accountingEntryRepository.create({
+            transaction,
+            account: cashAccount,
+            entry_type: 'DEBIT',
+            amount,
+            description: `Kas bertambah dari pemasukan untuk transaksi #${transaction.id}`,
+          }),
+          this.accountingEntryRepository.create({
+            transaction,
+            account: incomeAccount,
+            entry_type: 'CREDIT',
+            amount,
+            description: `Pendapatan bertambah untuk transaksi #${transaction.id}`,
+          }),
+        );
+        break;
 
-  //   if (!wallet) {
-  //     throw new Error('Wallet not found');
-  //   }
-  //   if (!transactionType) {
-  //     throw new Error('Transaction type not found');
-  //   }
+      case 'Pengeluaran':
+        if (wallet.balance < amount) {
+          throw new Error('Insufficient wallet balance for this transaction.');
+        }
+        wallet.balance -= amount; // Kurangi saldo dari wallet
+        entries.push(
+          this.accountingEntryRepository.create({
+            transaction,
+            account: expenseAccount,
+            entry_type: 'DEBIT',
+            amount,
+            description: `Beban bertambah untuk transaksi #${transaction.id}`,
+          }),
+          this.accountingEntryRepository.create({
+            transaction,
+            account: cashAccount,
+            entry_type: 'CREDIT',
+            amount,
+            description: `Kas berkurang untuk transaksi #${transaction.id}`,
+          }),
+        );
+        break;
 
-  //   // Menghitung perbedaan saldo yang akan diupdate
-  //   const balanceDifference = amount - transaction.amount;
+      case 'Hutang':
+        wallet.balance += amount; // Tambahkan saldo dari pencatatan hutang
+        entries.push(
+          this.accountingEntryRepository.create({
+            transaction,
+            account: debtAccount,
+            entry_type: 'CREDIT',
+            amount,
+            description: `Hutang bertambah untuk transaksi #${transaction.id}`,
+          }),
+          this.accountingEntryRepository.create({
+            transaction,
+            account: cashAccount,
+            entry_type: 'DEBIT',
+            amount,
+            description: `Kas bertambah dari pencatatan hutang untuk transaksi #${transaction.id}`,
+          }),
+        );
+        break;
 
-  //   // Memperbarui transaksi
-  //   transaction.wallet = wallet;
-  //   transaction.transactionType = transactionType;
-  //   transaction.amount = amount;
-  //   transaction.description = description;
+      case 'Piutang':
+        if (wallet.balance < amount) {
+          throw new Error('Insufficient wallet balance for this transaction.');
+        }
+        wallet.balance -= amount; // Kurangi saldo dari wallet
+        entries.push(
+          this.accountingEntryRepository.create({
+            transaction,
+            account: receivableAccount,
+            entry_type: 'DEBIT',
+            amount,
+            description: `Piutang bertambah untuk transaksi #${transaction.id}`,
+          }),
+          this.accountingEntryRepository.create({
+            transaction,
+            account: incomeAccount,
+            entry_type: 'CREDIT',
+            amount,
+            description: `Pendapatan bertambah untuk transaksi #${transaction.id}`,
+          }),
+        );
+        break;
 
-  //   await this.transactionRepository.save(transaction);
+      case 'Tanam Modal':
+        wallet.balance += amount; // Tambahkan saldo ke wallet dari modal
+        entries.push(
+          this.accountingEntryRepository.create({
+            transaction,
+            account: cashAccount,
+            entry_type: 'DEBIT',
+            amount,
+            description: `Kas bertambah dari penambahan modal untuk transaksi #${transaction.id}`,
+          }),
+          this.accountingEntryRepository.create({
+            transaction,
+            account: equityAccount,
+            entry_type: 'CREDIT',
+            amount,
+            description: `Ekuitas modal bertambah untuk transaksi #${transaction.id}`,
+          }),
+        );
+        break;
 
-  //   // Mengatur logika untuk transaksi berdasarkan jenis
-  //   await this.handleTransactionTypeUpdate(
-  //     transaction,
-  //     balanceDifference,
-  //     transactionType,
-  //   );
+      case 'Tarik Modal':
+        if (wallet.balance < amount) {
+          throw new Error('Insufficient wallet balance for this transaction.');
+        }
+        wallet.balance -= amount; // Kurangi saldo wallet dari modal
+        entries.push(
+          this.accountingEntryRepository.create({
+            transaction,
+            account: equityAccount,
+            entry_type: 'DEBIT',
+            amount,
+            description: `Ekuitas modal berkurang untuk transaksi #${transaction.id}`,
+          }),
+          this.accountingEntryRepository.create({
+            transaction,
+            account: cashAccount,
+            entry_type: 'CREDIT',
+            amount,
+            description: `Kas berkurang untuk transaksi #${transaction.id}`,
+          }),
+        );
+        break;
 
-  //   return transaction;
-  // }
+      case 'Transfer':
+        // Ambil rekening pengirim (wallet A)
+        const senderWallet = await this.walletRepository.findOne({
+          where: { id: transaction.wallet_id },
+        });
 
-  // Mengecek apakah transaksi termasuk dalam debit (pengeluaran)
+        if (!senderWallet) {
+          throw new Error('Sender wallet not found.');
+        }
 
-  // private async handleTransactionTypeUpdate(
-  //   transaction: Transaction,
-  //   amountDifference: number,
-  //   transactionType: TransactionType,
-  // ) {
-  //   switch (transactionType.name) {
-  //     case 'Pemasukan':
-  //       // Pemasukan berarti menambah saldo wallet
-  //       await this.updateWalletBalance(transaction.wallet.id, amountDifference);
-  //       break;
+        // Periksa apakah ada wallet penerima (internal transfer)
+        const receiverWallet = transaction.target_wallet_id
+          ? await this.walletRepository.findOne({
+              where: { id: transaction.target_wallet_id },
+            })
+          : null;
 
-  //     case 'Pengeluaran':
-  //       // Pengeluaran berarti mengurangi saldo wallet
-  //       await this.updateWalletBalance(transaction.wallet.id, amountDifference);
-  //       break;
+        if (receiverWallet) {
+          // Internal transfer: transfer ke wallet lain dalam sistem
+          // Pastikan saldo pengirim mencukupi
+          if (senderWallet.balance < amount) {
+            throw new Error('Insufficient balance in sender wallet.');
+          }
 
-  //     case 'Hutang':
-  //       // Menambahkan hutang ke dalam accounting entry
-  //       await this.createAccountingEntry(
-  //         transaction,
-  //         'CREDIT',
-  //         amountDifference,
-  //       );
-  //       break;
+          // Perbarui saldo untuk kedua wallet
+          senderWallet.balance -= amount;
+          receiverWallet.balance += amount;
 
-  //     case 'Piutang':
-  //       // Menambahkan piutang ke dalam accounting entry
-  //       await this.createAccountingEntry(
-  //         transaction,
-  //         'DEBIT',
-  //         amountDifference,
-  //       );
-  //       break;
+          entries.push(
+            this.accountingEntryRepository.create({
+              transaction,
+              account: cashAccount,
+              entry_type: 'CREDIT',
+              amount,
+              description: `Kas berkurang dari transfer keluar dari wallet #${senderWallet.id} pada transaksi #${transaction.id}`,
+            }),
+            this.accountingEntryRepository.create({
+              transaction,
+              account: cashAccount,
+              entry_type: 'DEBIT',
+              amount,
+              description: `Kas bertambah dari transfer masuk ke wallet #${receiverWallet.id} pada transaksi #${transaction.id}`,
+            }),
+          );
 
-  //     case 'Tanam Modal':
-  //       // Tanam modal, bisa menambah saldo atau mencatatkan investasi
-  //       await this.createAccountingEntry(
-  //         transaction,
-  //         'CREDIT',
-  //         amountDifference,
-  //       );
-  //       break;
+          // Simpan saldo wallet yang diperbarui
+          await this.walletRepository.save(senderWallet);
+          await this.walletRepository.save(receiverWallet);
+        } else {
+          // External transfer: transfer ke wallet eksternal (di luar sistem)
+          if (senderWallet.balance < amount) {
+            throw new Error('Insufficient balance in sender wallet.');
+          }
 
-  //     case 'Tarik Modal':
-  //       // Tarik modal, mengurangi saldo atau mencatat penarikan investasi
-  //       await this.createAccountingEntry(
-  //         transaction,
-  //         'DEBIT',
-  //         amountDifference,
-  //       );
-  //       break;
+          // Perbarui saldo pengirim saja
+          senderWallet.balance -= amount;
 
-  //     case 'Transfer':
-  //       // Transfer, mencatat pengiriman dana ke wallet lain
-  //       await this.handleTransfer(transaction, amountDifference);
-  //       break;
+          entries.push(
+            this.accountingEntryRepository.create({
+              transaction,
+              account: cashAccount,
+              entry_type: 'CREDIT',
+              amount,
+              description: `Kas berkurang dari transfer keluar ke pihak eksternal pada transaksi #${transaction.id}`,
+            }),
+          );
 
-  //     case 'Pemasukan Piutang':
-  //       // Pemasukan Piutang, mengonversi piutang menjadi pemasukan
-  //       await this.updateWalletBalance(transaction.wallet.id, amountDifference);
-  //       await this.createAccountingEntry(
-  //         transaction,
-  //         'DEBIT',
-  //         amountDifference,
-  //       );
-  //       break;
+          // Simpan saldo wallet pengirim yang diperbarui
+          await this.walletRepository.save(senderWallet);
+        }
+        break;
 
-  //     case 'Pengeluaran Piutang':
-  //       // Pengeluaran Piutang, mencatat pengeluaran dari piutang
-  //       await this.updateWalletBalance(transaction.wallet.id, amountDifference);
-  //       await this.createAccountingEntry(
-  //         transaction,
-  //         'CREDIT',
-  //         amountDifference,
-  //       );
-  //       break;
+      default:
+        throw new Error(`Unsupported transaction type: ${transactionTypeName}`);
+    }
 
-  //     default:
-  //       throw new Error('Unknown transaction type');
-  //   }
-  // }
+    // Simpan saldo wallet yang diperbarui
+    await this.walletRepository.save(wallet);
 
-  // private async handleTransactionTypeCreate(
-  //   transaction: Transaction,
-  //   amount: number,
-  //   transactionType: TransactionType,
-  // ) {
-  //   console.log(transactionType.name);
+    // Log perubahan wallet
+    const newWalletState = { balance: wallet.balance };
+    await this.transactionLogRepository.save(
+      this.transactionLogRepository.create({
+        action: 'Update',
+        oldValue: oldWalletState,
+        newValue: newWalletState,
+        transaction,
+        performed_by: userId,
+      }),
+    );
 
-  //   // Mendapatkan account terkait
-  //   const account = await this.getAccountByTransaction(transaction);
-
-  //   switch (transactionType.name) {
-  //     case 'Pemasukan':
-  //       // Pemasukan berarti menambah saldo wallet
-  //       await this.updateWalletBalance(transaction.wallet.id, amount);
-  //       await this.createAccountingEntry(transaction, account, 'DEBIT', amount);
-  //       break;
-
-  //     case 'Pengeluaran':
-  //       // Pengeluaran berarti mengurangi saldo wallet
-  //       await this.updateWalletBalance(transaction.wallet.id, -amount);
-  //       await this.createAccountingEntry(
-  //         transaction,
-  //         account,
-  //         'CREDIT',
-  //         amount,
-  //       );
-  //       break;
-
-  //     case 'Hutang':
-  //       // Menambahkan hutang ke dalam accounting entry
-  //       await this.createAccountingEntry(
-  //         transaction,
-  //         account,
-  //         'CREDIT',
-  //         amount,
-  //       );
-  //       break;
-
-  //     case 'Piutang':
-  //       // Menambahkan piutang ke dalam accounting entry
-  //       await this.createAccountingEntry(transaction, account, 'DEBIT', amount);
-  //       break;
-
-  //     case 'Tanam Modal':
-  //       // Tanam modal, mencatatkan investasi
-  //       await this.createAccountingEntry(
-  //         transaction,
-  //         account,
-  //         'CREDIT',
-  //         amount,
-  //       );
-  //       break;
-
-  //     case 'Tarik Modal':
-  //       // Tarik modal, mencatat penarikan investasi
-  //       await this.createAccountingEntry(transaction, account, 'DEBIT', amount);
-  //       break;
-
-  //     case 'Transfer':
-  //       // Transfer, mencatat pengiriman dana ke wallet lain
-  //       await this.handleTransfer(transaction, amount);
-  //       await this.createAccountingEntry(
-  //         transaction,
-  //         account,
-  //         'CREDIT',
-  //         amount,
-  //       );
-  //       break;
-
-  //     case 'Pemasukan Piutang':
-  //       // Pemasukan Piutang, mengonversi piutang menjadi pemasukan
-  //       await this.updateWalletBalance(transaction.wallet.id, amount);
-  //       await this.createAccountingEntry(transaction, account, 'DEBIT', amount);
-  //       break;
-
-  //     case 'Pengeluaran Piutang':
-  //       // Pengeluaran Piutang, mencatat pengeluaran dari piutang
-  //       await this.updateWalletBalance(transaction.wallet.id, -amount);
-  //       await this.createAccountingEntry(
-  //         transaction,
-  //         account,
-  //         'CREDIT',
-  //         amount,
-  //       );
-  //       break;
-
-  //     default:
-  //       throw new Error('Unknown transaction type');
-  //   }
-  // }
-
-  // Update saldo wallet setelah transaksi
-  // private async updateWalletBalance(walletId: number, amount: number) {
-  //   console.log('tes', walletId, amount);
-  //   const wallet = await this.walletRepository.findOne({
-  //     where: { id: walletId },
-  //   });
-  //   // Convert wallet.balance to number before performing the addition
-  //   const currentBalance = parseFloat(wallet.balance.toString());
-
-  //   // Perform the addition and set it with toFixed to maintain the desired precision
-  //   wallet.balance = currentBalance + amount; // Ensure it's always two decimal places
-
-  //   console.log('====>', wallet);
-  //   await this.walletRepository.save(wallet);
-  // }
-
-  // Menambahkan entry ke dalam accounting entries
-  // private async createAccountingEntry(
-  //   transaction: Transaction,
-  //   account: Account, // Tambahkan account sebagai parameter
-  //   entryType: 'DEBIT' | 'CREDIT',
-  //   amount: number,
-  // ) {
-  //   const accountingEntry = this.accountingEntryRepository.create({
-  //     transaction,
-  //     account, // Masukkan account ke dalam entri
-  //     entry_type: entryType,
-  //     amount,
-  //     description: transaction.description,
-  //     entry_date: new Date(),
-  //   });
-  //   console.log('SINI?', accountingEntry);
-  //   await this.accountingEntryRepository.save(accountingEntry);
-  // }
+    // Simpan entries ke database
+    await this.accountingEntryRepository.save(entries);
+  }
 }

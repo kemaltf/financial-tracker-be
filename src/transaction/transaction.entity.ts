@@ -46,6 +46,9 @@ export class Transaction {
   @Column({ type: 'int' })
   wallet_id: number;
 
+  @Column({ type: 'int' })
+  target_wallet_id: number;
+
   @CreateDateColumn({ type: 'timestamp', name: 'created_at' })
   created_at: Date;
 
