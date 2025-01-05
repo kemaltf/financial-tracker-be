@@ -39,6 +39,41 @@ export class TransactionService {
     private readonly transactionLogRepository: Repository<TransactionLog>,
   ) {}
 
+  private async getAccountByCode(code: string): Promise<Account> {
+    const account = await this.accountRepository.findOne({ where: { code } });
+    if (!account) {
+      throw new Error(`Account with code ${code} not found`);
+    }
+    return account;
+  }
+
+  private async checkWalletBalance(
+    wallet: Wallet,
+    amount: number,
+  ): Promise<void> {
+    if (wallet.balance < amount) {
+      throw new BadRequestException(
+        'Insufficient balance for this transaction',
+      );
+    }
+  }
+
+  private createAccountingEntry(
+    transaction: Transaction,
+    account: Account,
+    entryType: 'DEBIT' | 'CREDIT',
+    amount: number,
+    description: string,
+  ): AccountingEntry {
+    return this.accountingEntryRepository.create({
+      transaction,
+      account,
+      entry_type: entryType,
+      amount,
+      description,
+    });
+  }
+
   private isDebitTransaction(transactionTypeName: string): boolean {
     const debitTransactionTypes = [
       'Pengeluaran',
@@ -68,16 +103,15 @@ export class TransactionService {
       storeId,
     } = transactionDTO;
 
-    // transaksi itu pasti kan berhubungan sama wallet
-    // Menemukan Wallet dan user nya ada ga?
+    // validasi wallet dan usernya, apakah user berhak mengakses wallet ini?
     const wallet = await this.walletRepository.findOne({
-      where: { id: walletId, user: { id: userId } },
+      where: { id: walletId, users: { id: userId } },
     });
     if (!wallet) {
       throw new NotFoundException('Wallet not found');
     }
 
-    // Tipe transaksinya apa? trf, pemasukan, debt ? dll
+    // Cari jenis tipe transaksinya apa?
     const transactionType = await this.transactionTypeRepository.findOne({
       where: { id: transactionTypeId },
     });
@@ -85,18 +119,16 @@ export class TransactionService {
       throw new NotFoundException('Transaction type not found');
     }
 
-    // Mengecek jika transaksi adalah pengeluaran atau transaksi yang mengurangi saldo
+    // Validate wallet balance if it's a debit transaction
     if (
       this.isDebitTransaction(transactionType.name) &&
       wallet.balance < amount
     ) {
-      // Mengembalikan error ke client melalui response API
       throw new BadRequestException(
         'Insufficient balance for this transaction',
       );
     }
 
-    // Membuat transaksi baru
     const transaction = this.transactionRepository.create({
       user: { id: userId },
       wallet: { id: walletId },
@@ -108,57 +140,17 @@ export class TransactionService {
     });
     await this.transactionRepository.save(transaction);
 
-    // Simpan alamat jika data address disertakan
+    // Process address if provided
     if (address) {
-      const {
-        recipientName,
-        addressLine1,
-        addressLine2,
-        city,
-        state,
-        postalCode,
-        phoneNumber,
-      } = address;
-
-      const transactionAddress = this.transactionAddressRepository.create({
-        transaction,
-        recipientName,
-        addressLine1,
-        addressLine2: addressLine2 || null,
-        city,
-        state,
-        postalCode,
-        phoneNumber,
-      });
-
-      await this.transactionAddressRepository.save(transactionAddress);
+      await this.processAddress(transaction, address);
     }
 
-    // Proses details jika ada
+    // Process transaction details if provided
     if (details && details.length > 0) {
-      for (const detail of details) {
-        const product = await this.productRepository.findOne({
-          where: { id: detail.productId },
-        });
-        if (!product)
-          throw new NotFoundException(
-            `Product with ID ${detail.productId} not found`,
-          );
-
-        const totalPrice = product.price * detail.quantity; // Menghitung total harga per produk
-        const transactionDetail = this.transactionDetailRepository.create({
-          transaction,
-          productName: product.name,
-          productSku: product.sku,
-          unitPrice: product.price,
-          quantity: detail.quantity,
-          totalPrice,
-        });
-        await this.transactionDetailRepository.save(transactionDetail);
-      }
+      await this.processTransactionDetails(transaction, details);
     }
 
-    // Mengatur logika untuk transaksi berdasarkan jenis
+    // Handle the transaction logic based on its type
     await this.handleTransactionType(
       transaction,
       transactionType.name,
@@ -170,6 +162,60 @@ export class TransactionService {
     return transaction;
   }
 
+  private async processAddress(
+    transaction: Transaction,
+    address: any,
+  ): Promise<void> {
+    const {
+      recipientName,
+      addressLine1,
+      addressLine2,
+      city,
+      state,
+      postalCode,
+      phoneNumber,
+    } = address;
+
+    const transactionAddress = this.transactionAddressRepository.create({
+      transaction,
+      recipientName,
+      addressLine1,
+      addressLine2: addressLine2 || null,
+      city,
+      state,
+      postalCode,
+      phoneNumber,
+    });
+
+    await this.transactionAddressRepository.save(transactionAddress);
+  }
+
+  private async processTransactionDetails(
+    transaction: Transaction,
+    details: any[],
+  ): Promise<void> {
+    for (const detail of details) {
+      const product = await this.productRepository.findOne({
+        where: { id: detail.productId },
+      });
+      if (!product)
+        throw new NotFoundException(
+          `Product with ID ${detail.productId} not found`,
+        );
+
+      const totalPrice = product.price * detail.quantity;
+      const transactionDetail = this.transactionDetailRepository.create({
+        transaction,
+        productName: product.name,
+        productSku: product.sku,
+        unitPrice: product.price,
+        quantity: detail.quantity,
+        totalPrice,
+      });
+      await this.transactionDetailRepository.save(transactionDetail);
+    }
+  }
+
   async handleTransactionType(
     transaction: Transaction,
     transactionTypeName: string,
@@ -177,250 +223,149 @@ export class TransactionService {
     amount: number,
     userId: string,
   ): Promise<void> {
-    // Ambil akun-akun terkait
-    const cashAccount = await this.accountRepository.findOne({
-      where: { code: '101' },
-    }); // Kas
-    const incomeAccount = await this.accountRepository.findOne({
-      where: { code: '401' },
-    }); // Pendapatan
-    const expenseAccount = await this.accountRepository.findOne({
-      where: { code: '501' },
-    }); // Beban
-    const debtAccount = await this.accountRepository.findOne({
-      where: { code: '201' },
-    }); // Hutang
-    const receivableAccount = await this.accountRepository.findOne({
-      where: { code: '301' },
-    }); // Piutang
-    const equityAccount = await this.accountRepository.findOne({
-      where: { code: '601' },
-    }); // Modal
-
-    if (
-      !cashAccount ||
-      !incomeAccount ||
-      !expenseAccount ||
-      !debtAccount ||
-      !receivableAccount ||
-      !equityAccount
-    ) {
-      throw new Error('Some accounts are missing in the database.');
-    }
+    const cashAccount = await this.getAccountByCode('101');
+    const incomeAccount = await this.getAccountByCode('401');
+    const expenseAccount = await this.getAccountByCode('501');
+    const debtAccount = await this.getAccountByCode('201');
+    const receivableAccount = await this.getAccountByCode('301');
+    const equityAccount = await this.getAccountByCode('601');
 
     const entries: AccountingEntry[] = [];
-    const oldWalletState = { balance: wallet.balance }; // Catat saldo sebelum perubahan
+    const oldWalletState = { balance: wallet.balance };
 
     switch (transactionTypeName) {
       case 'Pemasukan':
-        wallet.balance += amount; // Tambahkan saldo ke wallet
+        wallet.balance += amount;
         entries.push(
-          this.accountingEntryRepository.create({
+          this.createAccountingEntry(
             transaction,
-            account: cashAccount,
-            entry_type: 'DEBIT',
+            cashAccount,
+            'DEBIT',
             amount,
-            description: `Kas bertambah dari pemasukan untuk transaksi #${transaction.id}`,
-          }),
-          this.accountingEntryRepository.create({
+            `Kas bertambah dari pemasukan untuk transaksi #${transaction.id}`,
+          ),
+          this.createAccountingEntry(
             transaction,
-            account: incomeAccount,
-            entry_type: 'CREDIT',
+            incomeAccount,
+            'CREDIT',
             amount,
-            description: `Pendapatan bertambah untuk transaksi #${transaction.id}`,
-          }),
+            `Pendapatan bertambah untuk transaksi #${transaction.id}`,
+          ),
         );
         break;
 
       case 'Pengeluaran':
-        if (wallet.balance < amount) {
-          throw new Error('Insufficient wallet balance for this transaction.');
-        }
-        wallet.balance -= amount; // Kurangi saldo dari wallet
+        await this.checkWalletBalance(wallet, amount);
+        wallet.balance -= amount;
         entries.push(
-          this.accountingEntryRepository.create({
+          this.createAccountingEntry(
             transaction,
-            account: expenseAccount,
-            entry_type: 'DEBIT',
+            expenseAccount,
+            'DEBIT',
             amount,
-            description: `Beban bertambah untuk transaksi #${transaction.id}`,
-          }),
-          this.accountingEntryRepository.create({
+            `Beban bertambah untuk transaksi #${transaction.id}`,
+          ),
+          this.createAccountingEntry(
             transaction,
-            account: cashAccount,
-            entry_type: 'CREDIT',
+            cashAccount,
+            'CREDIT',
             amount,
-            description: `Kas berkurang untuk transaksi #${transaction.id}`,
-          }),
+            `Kas berkurang untuk transaksi #${transaction.id}`,
+          ),
         );
         break;
 
       case 'Hutang':
-        wallet.balance += amount; // Tambahkan saldo dari pencatatan hutang
+        wallet.balance += amount;
         entries.push(
-          this.accountingEntryRepository.create({
+          this.createAccountingEntry(
             transaction,
-            account: debtAccount,
-            entry_type: 'CREDIT',
+            debtAccount,
+            'CREDIT',
             amount,
-            description: `Hutang bertambah untuk transaksi #${transaction.id}`,
-          }),
-          this.accountingEntryRepository.create({
+            `Hutang bertambah untuk transaksi #${transaction.id}`,
+          ),
+          this.createAccountingEntry(
             transaction,
-            account: cashAccount,
-            entry_type: 'DEBIT',
+            cashAccount,
+            'DEBIT',
             amount,
-            description: `Kas bertambah dari pencatatan hutang untuk transaksi #${transaction.id}`,
-          }),
+            `Kas bertambah dari pencatatan hutang untuk transaksi #${transaction.id}`,
+          ),
         );
         break;
 
       case 'Piutang':
-        if (wallet.balance < amount) {
-          throw new Error('Insufficient wallet balance for this transaction.');
-        }
-        wallet.balance -= amount; // Kurangi saldo dari wallet
+        await this.checkWalletBalance(wallet, amount);
+        wallet.balance -= amount;
         entries.push(
-          this.accountingEntryRepository.create({
+          this.createAccountingEntry(
             transaction,
-            account: receivableAccount,
-            entry_type: 'DEBIT',
+            receivableAccount,
+            'DEBIT',
             amount,
-            description: `Piutang bertambah untuk transaksi #${transaction.id}`,
-          }),
-          this.accountingEntryRepository.create({
+            `Piutang bertambah untuk transaksi #${transaction.id}`,
+          ),
+          this.createAccountingEntry(
             transaction,
-            account: incomeAccount,
-            entry_type: 'CREDIT',
+            incomeAccount,
+            'CREDIT',
             amount,
-            description: `Pendapatan bertambah untuk transaksi #${transaction.id}`,
-          }),
+            `Pendapatan bertambah untuk transaksi #${transaction.id}`,
+          ),
         );
         break;
 
       case 'Tanam Modal':
-        wallet.balance += amount; // Tambahkan saldo ke wallet dari modal
+        wallet.balance += amount;
         entries.push(
-          this.accountingEntryRepository.create({
+          this.createAccountingEntry(
             transaction,
-            account: cashAccount,
-            entry_type: 'DEBIT',
+            cashAccount,
+            'DEBIT',
             amount,
-            description: `Kas bertambah dari penambahan modal untuk transaksi #${transaction.id}`,
-          }),
-          this.accountingEntryRepository.create({
+            `Kas bertambah dari penambahan modal untuk transaksi #${transaction.id}`,
+          ),
+          this.createAccountingEntry(
             transaction,
-            account: equityAccount,
-            entry_type: 'CREDIT',
+            equityAccount,
+            'CREDIT',
             amount,
-            description: `Ekuitas modal bertambah untuk transaksi #${transaction.id}`,
-          }),
+            `Ekuitas modal bertambah untuk transaksi #${transaction.id}`,
+          ),
         );
         break;
 
       case 'Tarik Modal':
-        if (wallet.balance < amount) {
-          throw new Error('Insufficient wallet balance for this transaction.');
-        }
-        wallet.balance -= amount; // Kurangi saldo wallet dari modal
+        await this.checkWalletBalance(wallet, amount);
+        wallet.balance -= amount;
         entries.push(
-          this.accountingEntryRepository.create({
+          this.createAccountingEntry(
             transaction,
-            account: equityAccount,
-            entry_type: 'DEBIT',
+            equityAccount,
+            'DEBIT',
             amount,
-            description: `Ekuitas modal berkurang untuk transaksi #${transaction.id}`,
-          }),
-          this.accountingEntryRepository.create({
+            `Ekuitas modal berkurang untuk transaksi #${transaction.id}`,
+          ),
+          this.createAccountingEntry(
             transaction,
-            account: cashAccount,
-            entry_type: 'CREDIT',
+            cashAccount,
+            'CREDIT',
             amount,
-            description: `Kas berkurang untuk transaksi #${transaction.id}`,
-          }),
+            `Kas berkurang untuk transaksi #${transaction.id}`,
+          ),
         );
         break;
 
       case 'Transfer':
-        // Ambil rekening pengirim (wallet A)
-        const senderWallet = await this.walletRepository.findOne({
-          where: { id: transaction.wallet_id },
-        });
-
-        if (!senderWallet) {
-          throw new Error('Sender wallet not found.');
-        }
-
-        // Periksa apakah ada wallet penerima (internal transfer)
-        const receiverWallet = transaction.target_wallet_id
-          ? await this.walletRepository.findOne({
-              where: { id: transaction.target_wallet_id },
-            })
-          : null;
-
-        if (receiverWallet) {
-          // Internal transfer: transfer ke wallet lain dalam sistem
-          // Pastikan saldo pengirim mencukupi
-          if (senderWallet.balance < amount) {
-            throw new Error('Insufficient balance in sender wallet.');
-          }
-
-          // Perbarui saldo untuk kedua wallet
-          senderWallet.balance -= amount;
-          receiverWallet.balance += amount;
-
-          entries.push(
-            this.accountingEntryRepository.create({
-              transaction,
-              account: cashAccount,
-              entry_type: 'CREDIT',
-              amount,
-              description: `Kas berkurang dari transfer keluar dari wallet #${senderWallet.id} pada transaksi #${transaction.id}`,
-            }),
-            this.accountingEntryRepository.create({
-              transaction,
-              account: cashAccount,
-              entry_type: 'DEBIT',
-              amount,
-              description: `Kas bertambah dari transfer masuk ke wallet #${receiverWallet.id} pada transaksi #${transaction.id}`,
-            }),
-          );
-
-          // Simpan saldo wallet yang diperbarui
-          await this.walletRepository.save(senderWallet);
-          await this.walletRepository.save(receiverWallet);
-        } else {
-          // External transfer: transfer ke wallet eksternal (di luar sistem)
-          if (senderWallet.balance < amount) {
-            throw new Error('Insufficient balance in sender wallet.');
-          }
-
-          // Perbarui saldo pengirim saja
-          senderWallet.balance -= amount;
-
-          entries.push(
-            this.accountingEntryRepository.create({
-              transaction,
-              account: cashAccount,
-              entry_type: 'CREDIT',
-              amount,
-              description: `Kas berkurang dari transfer keluar ke pihak eksternal pada transaksi #${transaction.id}`,
-            }),
-          );
-
-          // Simpan saldo wallet pengirim yang diperbarui
-          await this.walletRepository.save(senderWallet);
-        }
+        await this.handleTransfer(transaction, wallet, amount);
         break;
 
       default:
         throw new Error(`Unsupported transaction type: ${transactionTypeName}`);
     }
 
-    // Simpan saldo wallet yang diperbarui
     await this.walletRepository.save(wallet);
-
-    // Log perubahan wallet
     const newWalletState = { balance: wallet.balance };
     await this.transactionLogRepository.save(
       this.transactionLogRepository.create({
@@ -432,7 +377,71 @@ export class TransactionService {
       }),
     );
 
-    // Simpan entries ke database
     await this.accountingEntryRepository.save(entries);
+  }
+
+  private async handleTransfer(
+    transaction: Transaction,
+    wallet: Wallet,
+    amount: number,
+  ): Promise<void> {
+    // Assuming transfer involves two wallets: source (wallet) and destination wallet
+    const destinationWalletId = transaction.target_wallet_id; // This should come from the transaction DTO
+    const destinationWallet = await this.walletRepository.findOne({
+      where: { id: destinationWalletId },
+    });
+
+    if (!destinationWallet) {
+      throw new NotFoundException('Destination wallet not found');
+    }
+
+    // Check if the source wallet has enough balance for the transfer
+    if (wallet.balance < amount) {
+      throw new BadRequestException('Insufficient balance for the transfer');
+    }
+
+    // Deduct the amount from the source wallet
+    wallet.balance -= amount;
+    await this.walletRepository.save(wallet);
+
+    // Add the amount to the destination wallet
+    destinationWallet.balance += amount;
+    await this.walletRepository.save(destinationWallet);
+
+    // Create accounting entries for the transfer
+    const sourceAccount = await this.getAccountByCode('101'); // Example account code for source wallet
+    const destinationAccount = await this.getAccountByCode('102'); // Example account code for destination wallet
+
+    const entries: AccountingEntry[] = [
+      this.createAccountingEntry(
+        transaction,
+        sourceAccount,
+        'CREDIT',
+        amount,
+        `Transferred to wallet ${destinationWalletId} for transaction #${transaction.id}`,
+      ),
+      this.createAccountingEntry(
+        transaction,
+        destinationAccount,
+        'DEBIT',
+        amount,
+        `Transferred from wallet ${wallet.id} for transaction #${transaction.id}`,
+      ),
+    ];
+
+    // Save accounting entries
+    await this.accountingEntryRepository.save(entries);
+
+    // Optionally, log the transfer action in a transaction log
+    const oldWalletState = { balance: wallet.balance };
+    const newWalletState = { balance: destinationWallet.balance };
+    await this.transactionLogRepository.save(
+      this.transactionLogRepository.create({
+        action: 'Transfer',
+        oldValue: oldWalletState,
+        newValue: newWalletState,
+        transaction,
+      }),
+    );
   }
 }

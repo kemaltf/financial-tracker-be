@@ -10,6 +10,7 @@ import { Account } from '@app/account/account.entity';
 import { TransactionAddress } from './transactionAddress/transaction-address.entity';
 import { TransactionDetail } from './transactionDetail/transaction-detail.entity';
 import { Product } from '@app/product/entity/product.entity';
+import { TransactionLog } from './transactionLogs/transaction-log.entity';
 
 @Module({
   imports: [
@@ -22,6 +23,7 @@ import { Product } from '@app/product/entity/product.entity';
       TransactionAddress,
       TransactionDetail,
       Product,
+      TransactionLog,
     ]),
   ],
   providers: [TransactionService],

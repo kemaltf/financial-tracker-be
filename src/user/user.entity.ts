@@ -9,6 +9,8 @@ import {
   CreateDateColumn,
   UpdateDateColumn,
   OneToMany,
+  ManyToMany,
+  JoinTable,
 } from 'typeorm';
 
 export enum UserRole {
@@ -52,7 +54,18 @@ export class User {
   @OneToMany(() => Transaction, (transaction) => transaction.user)
   Transactions: Transaction[];
 
-  @OneToMany(() => Wallet, (wallet) => wallet.user)
+  @ManyToMany(() => Wallet, (wallet) => wallet.users)
+  @JoinTable({
+    name: 'user_wallet_access', // Nama tabel penghubung
+    joinColumn: {
+      name: 'user_id',
+      referencedColumnName: 'id',
+    },
+    inverseJoinColumn: {
+      name: 'wallet_id',
+      referencedColumnName: 'id',
+    },
+  })
   wallets: Wallet[];
 
   @OneToMany(() => TransactionLog, (log) => log.performed_by)

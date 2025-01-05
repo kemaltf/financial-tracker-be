@@ -4,9 +4,8 @@ import {
   Column,
   CreateDateColumn,
   UpdateDateColumn,
-  ManyToOne,
-  JoinColumn,
   OneToMany,
+  ManyToMany,
 } from 'typeorm';
 import { Transaction } from 'src/transaction/transaction.entity';
 import { User } from 'src/user/user.entity';
@@ -23,9 +22,8 @@ export class Wallet {
   @PrimaryGeneratedColumn()
   id: number; //
 
-  @ManyToOne(() => User, (user) => user.wallets)
-  @JoinColumn({ name: 'user_id' })
-  user: User;
+  @ManyToMany(() => User, (user) => user.wallets)
+  users: User[];
 
   @Column({
     type: 'enum',
