@@ -39,6 +39,108 @@ export class TransactionService {
     private readonly transactionLogRepository: Repository<TransactionLog>,
   ) {}
 
+  /**
+   *
+   * === Core logic for creating transactions ===
+   * User akan menentukan wallet, tipe transaksi, detail transaksi, toko transaksi
+   * Difungsi ini akan mengupdate saldo wallet, transaction, accountant table
+   * Proses logikanya di bagian ini
+   *
+   */
+  async createTransaction(
+    userId: string,
+    transactionDTO: TransactionDTO,
+  ): Promise<Transaction> {
+    const {
+      walletId,
+      transactionTypeId,
+      amount,
+      description,
+      address,
+      details,
+      storeId,
+    } = transactionDTO;
+
+    // 1. Validate transaction type
+    const transactionType =
+      await this.validateTransactionType(transactionTypeId);
+
+    // 2. Validate wallet
+    const wallet = await this.validateWallet(
+      walletId,
+      userId,
+      transactionType.name,
+      amount,
+    );
+
+    // 3. Create a transaction
+    const transaction = this.transactionRepository.create({
+      user: { id: userId },
+      wallet: { id: walletId },
+      transactionType,
+      amount,
+      description,
+      date: new Date(),
+      store: { id: storeId },
+    });
+    await this.transactionRepository.save(transaction);
+
+    // 4. Save address if exist
+    if (address) await this.createTransactionAddress(transaction, address);
+
+    // 5. Save detail transaction if exist
+    if (details?.length)
+      await this.createTransactionDetails(transaction, details);
+
+    // Handle the transaction logic based on its type
+    await this.processAccountingNWallet(
+      transaction,
+      transactionType.name,
+      wallet,
+      amount,
+      userId,
+    );
+
+    return transaction;
+  }
+
+  /**
+   * Helper to validate wallet ownership and balance
+   */
+  private async validateWallet(
+    walletId: number,
+    userId: string,
+    transactionType: string,
+    amount?: number,
+  ): Promise<Wallet> {
+    const wallet = await this.walletRepository.findOne({
+      where: { id: walletId, users: { id: userId } },
+    });
+    if (!wallet) throw new NotFoundException('Wallet not found');
+    // Validate wallet balance if it's a debit transaction
+    if (
+      this.isDebitTransaction(transactionType) &&
+      this.checkWalletBalance(wallet, amount)
+    )
+      return wallet;
+  }
+
+  /**
+   * Helper to validate transaction type
+   */
+  private async validateTransactionType(transactionTypeId: number) {
+    const transactionType = await this.transactionTypeRepository.findOne({
+      where: { id: transactionTypeId },
+    });
+    if (!transactionType) {
+      throw new NotFoundException('Transaction type not found');
+    }
+    return transactionType;
+  }
+
+  /**
+   * Helper to get account by code
+   */
   private async getAccountByCode(code: string): Promise<Account> {
     const account = await this.accountRepository.findOne({ where: { code } });
     if (!account) {
@@ -47,6 +149,9 @@ export class TransactionService {
     return account;
   }
 
+  /**
+   * Helper to check wallet balance
+   */
   private async checkWalletBalance(
     wallet: Wallet,
     amount: number,
@@ -58,6 +163,22 @@ export class TransactionService {
     }
   }
 
+  /**
+   * helper to check whether is debit transaction
+   */
+  private isDebitTransaction(transactionTypeName: string): boolean {
+    const debitTransactionTypes = [
+      'Pengeluaran',
+      'Pengeluaran Piutang',
+      'Tarik Modal',
+      'Transfer',
+    ];
+    return debitTransactionTypes.includes(transactionTypeName);
+  }
+
+  /**
+   * Create accounting entry
+   */
   private createAccountingEntry(
     transaction: Transaction,
     account: Account,
@@ -74,95 +195,10 @@ export class TransactionService {
     });
   }
 
-  private isDebitTransaction(transactionTypeName: string): boolean {
-    const debitTransactionTypes = [
-      'Pengeluaran',
-      'Pengeluaran Piutang',
-      'Tarik Modal',
-      'Transfer',
-    ];
-    return debitTransactionTypes.includes(transactionTypeName);
-  }
-
-  // Logic untuk membuat transaksi MANUAL
-  // Transaksi itu ada beberapa tipe transaksi
-  // pertama user akan memilih tipe transaksinya jenisnya apa?
-  // kemudian user akan memilih wallet transaksinya dimana?
-  // kemudian akan di proses logikanya di bagian ini
-  async createTransaction(
-    userId: string,
-    transactionDTO: TransactionDTO,
-  ): Promise<Transaction> {
-    const {
-      walletId,
-      transactionTypeId,
-      amount,
-      description,
-      address,
-      details,
-      storeId,
-    } = transactionDTO;
-
-    // validasi wallet dan usernya, apakah user berhak mengakses wallet ini?
-    const wallet = await this.walletRepository.findOne({
-      where: { id: walletId, users: { id: userId } },
-    });
-    if (!wallet) {
-      throw new NotFoundException('Wallet not found');
-    }
-
-    // Cari jenis tipe transaksinya apa?
-    const transactionType = await this.transactionTypeRepository.findOne({
-      where: { id: transactionTypeId },
-    });
-    if (!transactionType) {
-      throw new NotFoundException('Transaction type not found');
-    }
-
-    // Validate wallet balance if it's a debit transaction
-    if (
-      this.isDebitTransaction(transactionType.name) &&
-      wallet.balance < amount
-    ) {
-      throw new BadRequestException(
-        'Insufficient balance for this transaction',
-      );
-    }
-
-    const transaction = this.transactionRepository.create({
-      user: { id: userId },
-      wallet: { id: walletId },
-      transactionType,
-      amount,
-      description,
-      date: new Date(),
-      store: { id: storeId },
-    });
-    await this.transactionRepository.save(transaction);
-
-    // Process address if provided
-    if (address) {
-      await this.processAddress(transaction, address);
-    }
-
-    // Process transaction details if provided
-    if (details && details.length > 0) {
-      await this.processTransactionDetails(transaction, details);
-    }
-
-    // Handle the transaction logic based on its type
-    await this.handleTransactionType(
-      transaction,
-      transactionType.name,
-      wallet,
-      amount,
-      userId,
-    );
-
-    return transaction;
-  }
-
-  private async processAddress(
+  /**
+   * Create transaction address
+   */
+  private async createTransactionAddress(
     transaction: Transaction,
     address: any,
   ): Promise<void> {
@@ -190,7 +226,10 @@ export class TransactionService {
     await this.transactionAddressRepository.save(transactionAddress);
   }
 
-  private async processTransactionDetails(
+  /**
+   * Create transaction details
+   */
+  private async createTransactionDetails(
     transaction: Transaction,
     details: any[],
   ): Promise<void> {
@@ -216,13 +255,14 @@ export class TransactionService {
     }
   }
 
-  async handleTransactionType(
+  async processAccountingNWallet(
     transaction: Transaction,
     transactionTypeName: string,
     wallet: Wallet,
     amount: number,
     userId: string,
   ): Promise<void> {
+    // Get account id
     const cashAccount = await this.getAccountByCode('101');
     const incomeAccount = await this.getAccountByCode('401');
     const expenseAccount = await this.getAccountByCode('501');
@@ -233,6 +273,7 @@ export class TransactionService {
     const entries: AccountingEntry[] = [];
     const oldWalletState = { balance: wallet.balance };
 
+    // Logic accounting
     switch (transactionTypeName) {
       case 'Pemasukan':
         wallet.balance += amount;
