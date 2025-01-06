@@ -10,6 +10,7 @@ import {
 import { Product } from './product.entity';
 import { VariantType } from '../../variant/variant-type.entity';
 import { Image } from 'src/image/image.entity';
+import { ColumnNumericTransformer } from '@app/common/transformer/column-numeric.transformer';
 
 @Entity('product_variants')
 export class ProductVariant {
@@ -28,7 +29,12 @@ export class ProductVariant {
   @Column({ type: 'varchar', length: 100, unique: true })
   sku: string;
 
-  @Column({ type: 'decimal', precision: 10, scale: 2 })
+  @Column({
+    type: 'decimal',
+    precision: 12,
+    scale: 2,
+    transformer: new ColumnNumericTransformer(),
+  })
   price: number;
 
   @Column({ type: 'int' })

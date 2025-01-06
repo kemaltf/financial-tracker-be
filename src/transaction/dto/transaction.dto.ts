@@ -9,11 +9,11 @@ import {
 export class TransactionDTO {
   @IsNumber()
   @IsNotEmpty()
-  walletId: number;
+  originWalletId: number;
 
   @IsNumber()
   @IsOptional()
-  targetWalletId: number;
+  destinationWalletId: number;
 
   @IsNumber()
   @IsNotEmpty()
@@ -30,6 +30,10 @@ export class TransactionDTO {
   @IsNumber()
   @IsOptional()
   storeId?: number;
+
+  @IsNumber()
+  @IsOptional()
+  customerId?: number;
 
   @IsOptional()
   address?: {

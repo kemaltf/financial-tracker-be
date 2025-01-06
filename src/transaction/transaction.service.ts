@@ -14,7 +14,9 @@ import { Account } from '@app/account/account.entity';
 import { TransactionAddress } from './transactionAddress/transaction-address.entity';
 import { TransactionDetail } from './transactionDetail/transaction-detail.entity';
 import { Product } from '@app/product/entity/product.entity';
-import { TransactionLog } from './transactionLogs/transaction-log.entity';
+import { WalletLog } from '../wallet/walletLogs/wallet-log.entity';
+import { Store } from '@app/store/store.entity';
+import { Customer } from '@app/customer/entity/customer.entity';
 
 @Injectable()
 export class TransactionService {
@@ -35,8 +37,12 @@ export class TransactionService {
     private productRepository: Repository<Product>,
     @InjectRepository(Account)
     private readonly accountRepository: Repository<Account>,
-    @InjectRepository(TransactionLog)
-    private readonly transactionLogRepository: Repository<TransactionLog>,
+    @InjectRepository(WalletLog)
+    private readonly walletLog: Repository<WalletLog>,
+    @InjectRepository(Store)
+    private readonly storeRepository: Repository<Store>,
+    @InjectRepository(Customer)
+    private readonly customerRepository: Repository<Customer>,
   ) {}
 
   /**
@@ -52,41 +58,64 @@ export class TransactionService {
     transactionDTO: TransactionDTO,
   ): Promise<Transaction> {
     const {
-      walletId,
+      originWalletId,
       transactionTypeId,
       amount,
       description,
       address,
       details,
       storeId,
+      destinationWalletId,
+      customerId,
     } = transactionDTO;
+
+    console.log('transsaction', transactionDTO);
 
     // 1. Validate transaction type
     const transactionType =
       await this.validateTransactionType(transactionTypeId);
 
     // 2. Validate wallet
-    const wallet = await this.validateWallet(
-      walletId,
+    const [originWallet, destinationWallet] = await this.validateWallet(
+      originWalletId,
+      destinationWalletId,
       userId,
       transactionType.name,
       amount,
     );
 
+    // 3. Validate Store
+    const store = await this.validateStore(storeId);
+    const customer = await this.validateCustomemr(customerId);
+
     // 3. Create a transaction
     const transaction = this.transactionRepository.create({
       user: { id: userId },
-      wallet: { id: walletId },
+      originWallet: { id: originWalletId },
+      destinationWallet: { id: destinationWalletId },
       transactionType,
       amount,
       description,
       date: new Date(),
-      store: { id: storeId },
+      store: { id: store.id },
+      customer: {
+        id: customer.id,
+      },
+      address: {
+        recipientName: address?.recipientName,
+        addressLine1: address?.addressLine1,
+        addressLine2: address?.addressLine2 || null,
+        city: address?.city,
+        state: address?.state,
+        postalCode: address?.postalCode,
+        phoneNumber: address?.phoneNumber,
+      },
     });
     await this.transactionRepository.save(transaction);
 
+    console.log('kebawah', transaction);
     // 4. Save address if exist
-    if (address) await this.createTransactionAddress(transaction, address);
+    // if (address) await this.createTransactionAddress(transaction, address);
 
     // 5. Save detail transaction if exist
     if (details?.length)
@@ -96,7 +125,8 @@ export class TransactionService {
     await this.processAccountingNWallet(
       transaction,
       transactionType.name,
-      wallet,
+      originWallet,
+      destinationWallet,
       amount,
       userId,
     );
@@ -104,25 +134,58 @@ export class TransactionService {
     return transaction;
   }
 
+  private async validateStore(storeId: number) {
+    // Periksa keberadaan store
+    const store = await this.storeRepository.findOne({
+      where: { id: storeId },
+    });
+    if (!store) {
+      throw new NotFoundException(`Store with ID ${storeId} does not exist.`);
+    }
+    return store;
+  }
+
+  private async validateCustomemr(customerId: number) {
+    // Periksa keberadaan store
+    const store = await this.customerRepository.findOne({
+      where: { id: customerId },
+    });
+    if (!store) {
+      throw new NotFoundException(
+        `Customer with ID ${customerId} does not exist.`,
+      );
+    }
+    return store;
+  }
+
   /**
    * Helper to validate wallet ownership and balance
    */
   private async validateWallet(
-    walletId: number,
+    originWalletId: number,
+    destinationWalletId: number,
     userId: string,
     transactionType: string,
     amount?: number,
-  ): Promise<Wallet> {
-    const wallet = await this.walletRepository.findOne({
-      where: { id: walletId, users: { id: userId } },
+  ): Promise<Wallet[]> {
+    const originWallet = await this.walletRepository.findOne({
+      where: { id: originWalletId, users: { id: userId } },
     });
-    if (!wallet) throw new NotFoundException('Wallet not found');
+    const destinationWallet = await this.walletRepository.findOne({
+      where: { id: destinationWalletId, users: { id: userId } },
+    });
+
+    if (!originWallet || !destinationWallet)
+      throw new NotFoundException('Wallet not found');
+
     // Validate wallet balance if it's a debit transaction
     if (
       this.isDebitTransaction(transactionType) &&
-      this.checkWalletBalance(wallet, amount)
-    )
-      return wallet;
+      this.checkWalletBalance(originWallet, amount)
+    ) {
+      throw new Error('Insufficient balance for this transaction');
+    }
+    return [originWallet, destinationWallet];
   }
 
   /**
@@ -156,6 +219,8 @@ export class TransactionService {
     wallet: Wallet,
     amount: number,
   ): Promise<void> {
+    console.log('wallet?', wallet);
+    console.log('typeof', typeof wallet.balance);
     if (wallet.balance < amount) {
       throw new BadRequestException(
         'Insufficient balance for this transaction',
@@ -231,7 +296,10 @@ export class TransactionService {
    */
   private async createTransactionDetails(
     transaction: Transaction,
-    details: any[],
+    details: {
+      productId: number;
+      quantity: number;
+    }[],
   ): Promise<void> {
     for (const detail of details) {
       const product = await this.productRepository.findOne({
@@ -258,7 +326,8 @@ export class TransactionService {
   async processAccountingNWallet(
     transaction: Transaction,
     transactionTypeName: string,
-    wallet: Wallet,
+    originWallet: Wallet,
+    destinationWallet: Wallet,
     amount: number,
     userId: string,
   ): Promise<void> {
@@ -271,12 +340,14 @@ export class TransactionService {
     const equityAccount = await this.getAccountByCode('601');
 
     const entries: AccountingEntry[] = [];
-    const oldWalletState = { balance: wallet.balance };
+    const oldWalletState = { balance: originWallet.balance };
+    console.log('tess', typeof originWallet.balance);
+    console.log('tess 2', typeof amount);
 
     // Logic accounting
     switch (transactionTypeName) {
       case 'Pemasukan':
-        wallet.balance += amount;
+        originWallet.balance += amount;
         entries.push(
           this.createAccountingEntry(
             transaction,
@@ -296,8 +367,8 @@ export class TransactionService {
         break;
 
       case 'Pengeluaran':
-        await this.checkWalletBalance(wallet, amount);
-        wallet.balance -= amount;
+        await this.checkWalletBalance(originWallet, amount);
+        originWallet.balance -= amount;
         entries.push(
           this.createAccountingEntry(
             transaction,
@@ -317,7 +388,7 @@ export class TransactionService {
         break;
 
       case 'Hutang':
-        wallet.balance += amount;
+        originWallet.balance += amount;
         entries.push(
           this.createAccountingEntry(
             transaction,
@@ -337,8 +408,8 @@ export class TransactionService {
         break;
 
       case 'Piutang':
-        await this.checkWalletBalance(wallet, amount);
-        wallet.balance -= amount;
+        await this.checkWalletBalance(originWallet, amount);
+        originWallet.balance -= amount;
         entries.push(
           this.createAccountingEntry(
             transaction,
@@ -358,7 +429,7 @@ export class TransactionService {
         break;
 
       case 'Tanam Modal':
-        wallet.balance += amount;
+        originWallet.balance += amount;
         entries.push(
           this.createAccountingEntry(
             transaction,
@@ -378,8 +449,8 @@ export class TransactionService {
         break;
 
       case 'Tarik Modal':
-        await this.checkWalletBalance(wallet, amount);
-        wallet.balance -= amount;
+        await this.checkWalletBalance(originWallet, amount);
+        originWallet.balance -= amount;
         entries.push(
           this.createAccountingEntry(
             transaction,
@@ -399,21 +470,26 @@ export class TransactionService {
         break;
 
       case 'Transfer':
-        await this.handleTransfer(transaction, wallet, amount);
+        await this.handleTransfer(
+          transaction,
+          originWallet,
+          destinationWallet,
+          amount,
+        );
         break;
 
       default:
         throw new Error(`Unsupported transaction type: ${transactionTypeName}`);
     }
 
-    await this.walletRepository.save(wallet);
-    const newWalletState = { balance: wallet.balance };
-    await this.transactionLogRepository.save(
-      this.transactionLogRepository.create({
+    await this.walletRepository.save(originWallet);
+    const newWalletState = { balance: originWallet.balance };
+    await this.walletLog.save(
+      this.walletLog.create({
         action: 'Update',
         oldValue: oldWalletState,
         newValue: newWalletState,
-        transaction,
+        wallet: originWallet,
         performed_by: userId,
       }),
     );
@@ -423,27 +499,22 @@ export class TransactionService {
 
   private async handleTransfer(
     transaction: Transaction,
-    wallet: Wallet,
+    originWallet: Wallet,
+    destinationWallet: Wallet,
     amount: number,
   ): Promise<void> {
-    // Assuming transfer involves two wallets: source (wallet) and destination wallet
-    const destinationWalletId = transaction.target_wallet_id; // This should come from the transaction DTO
-    const destinationWallet = await this.walletRepository.findOne({
-      where: { id: destinationWalletId },
-    });
-
     if (!destinationWallet) {
       throw new NotFoundException('Destination wallet not found');
     }
 
     // Check if the source wallet has enough balance for the transfer
-    if (wallet.balance < amount) {
+    if (originWallet.balance < amount) {
       throw new BadRequestException('Insufficient balance for the transfer');
     }
 
     // Deduct the amount from the source wallet
-    wallet.balance -= amount;
-    await this.walletRepository.save(wallet);
+    originWallet.balance -= amount;
+    await this.walletRepository.save(originWallet);
 
     // Add the amount to the destination wallet
     destinationWallet.balance += amount;
@@ -459,14 +530,14 @@ export class TransactionService {
         sourceAccount,
         'CREDIT',
         amount,
-        `Transferred to wallet ${destinationWalletId} for transaction #${transaction.id}`,
+        `Transferred to wallet ${destinationWallet.id} for transaction #${transaction.id}`,
       ),
       this.createAccountingEntry(
         transaction,
         destinationAccount,
         'DEBIT',
         amount,
-        `Transferred from wallet ${wallet.id} for transaction #${transaction.id}`,
+        `Transferred from wallet ${originWallet.id} for transaction #${transaction.id}`,
       ),
     ];
 
@@ -474,14 +545,14 @@ export class TransactionService {
     await this.accountingEntryRepository.save(entries);
 
     // Optionally, log the transfer action in a transaction log
-    const oldWalletState = { balance: wallet.balance };
+    const oldWalletState = { balance: originWallet.balance };
     const newWalletState = { balance: destinationWallet.balance };
-    await this.transactionLogRepository.save(
-      this.transactionLogRepository.create({
+    await this.walletLog.save(
+      this.walletLog.create({
         action: 'Transfer',
         oldValue: oldWalletState,
         newValue: newWalletState,
-        transaction,
+        wallet: originWallet,
       }),
     );
   }

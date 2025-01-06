@@ -3,7 +3,6 @@ import { Customer } from 'src/customer/entity/customer.entity';
 import { Store } from 'src/store/store.entity';
 import { TransactionAddress } from '@app/transaction/transactionAddress/transaction-address.entity';
 import { TransactionDetail } from '@app/transaction/transactionDetail/transaction-detail.entity';
-import { TransactionLog } from '@app/transaction/transactionLogs/transaction-log.entity';
 import { TransactionType } from '@app/transaction/transactionType/transaction-type.entity';
 import { User } from 'src/user/user.entity';
 import { Wallet } from 'src/wallet/wallet.entity';
@@ -16,7 +15,9 @@ import {
   ManyToOne,
   JoinColumn,
   OneToMany,
+  OneToOne,
 } from 'typeorm';
+import { ColumnNumericTransformer } from '@app/common/transformer/column-numeric.transformer';
 
 @Entity('transactions')
 export class Transaction {
@@ -34,7 +35,12 @@ export class Transaction {
   @JoinColumn({ name: 'transaction_type_id' })
   transactionType: TransactionType;
 
-  @Column({ type: 'decimal', precision: 12, scale: 2 })
+  @Column({
+    type: 'decimal',
+    precision: 12,
+    scale: 2,
+    transformer: new ColumnNumericTransformer(),
+  })
   amount: number;
 
   @Column({ type: 'text' })
@@ -43,11 +49,17 @@ export class Transaction {
   @Column({ type: 'datetime' })
   date: Date;
 
-  @Column({ type: 'int' })
-  wallet_id: number;
+  @ManyToOne(() => Wallet, (wallet) => wallet.originTransactions, {
+    nullable: false,
+  })
+  @JoinColumn({ name: 'origin_wallet_id' })
+  originWallet: Wallet;
 
-  @Column({ type: 'int' })
-  target_wallet_id: number;
+  @ManyToOne(() => Wallet, (wallet) => wallet.targetTransactions, {
+    nullable: true,
+  })
+  @JoinColumn({ name: 'target_wallet_id' })
+  destinationWallet: Wallet;
 
   @CreateDateColumn({ type: 'timestamp', name: 'created_at' })
   created_at: Date;
@@ -55,9 +67,9 @@ export class Transaction {
   @UpdateDateColumn({ type: 'timestamp', name: 'updated_at' })
   updatedAt: Date;
 
-  @ManyToOne(() => Wallet, (wallet) => wallet.transactions)
-  @JoinColumn({ name: 'wallet_id' })
-  wallet: Wallet;
+  // @ManyToOne(() => Wallet, (wallet) => wallet.transactions)
+  // @JoinColumn({ name: 'wallet_id' })
+  // wallet: Wallet;
 
   @OneToMany(
     () => TransactionDetail,
@@ -65,17 +77,15 @@ export class Transaction {
   )
   details: TransactionDetail[];
 
-  @OneToMany(
+  @OneToOne(
     () => TransactionAddress,
     (transactionAddress) => transactionAddress.transaction,
   )
-  address: TransactionAddress[];
+  @JoinColumn({ name: 'transaction_address_id' }) // Menambahkan JoinColumn untuk menghubungkan dengan kolom yang benar
+  address: TransactionAddress;
 
   @ManyToOne(() => Store, (store) => store.transactions)
   store: Store;
-
-  @OneToMany(() => TransactionLog, (log) => log.transaction)
-  logs: TransactionLog[];
 
   @OneToMany(() => AccountingEntry, (entry) => entry.transaction)
   entries: AccountingEntry[];

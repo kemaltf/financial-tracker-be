@@ -1,3 +1,4 @@
+import { ColumnNumericTransformer } from '@app/common/transformer/column-numeric.transformer';
 import { Account } from 'src/account/account.entity';
 import { Transaction } from 'src/transaction/transaction.entity';
 import {
@@ -32,8 +33,9 @@ export class AccountingEntry {
 
   @Column({
     type: 'decimal',
-    precision: 10,
+    precision: 12,
     scale: 2,
+    transformer: new ColumnNumericTransformer(),
   })
   amount: number;
 

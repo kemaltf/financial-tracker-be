@@ -9,6 +9,8 @@ import {
 } from 'typeorm';
 import { Transaction } from 'src/transaction/transaction.entity';
 import { User } from 'src/user/user.entity';
+import { WalletLog } from './walletLogs/wallet-log.entity';
+import { ColumnNumericTransformer } from '@app/common/transformer/column-numeric.transformer';
 
 export enum WalletType {
   CASH = 'Cash',
@@ -32,7 +34,13 @@ export class Wallet {
   })
   wallet_type: 'Cash' | 'Bank' | 'PayPal' | 'Other';
 
-  @Column({ type: 'decimal', precision: 15, scale: 2, default: 0 })
+  @Column({
+    type: 'decimal',
+    precision: 12,
+    scale: 2,
+    default: 0,
+    transformer: new ColumnNumericTransformer(),
+  })
   balance: number;
 
   @Column({ type: 'varchar', length: 255, nullable: true })
@@ -50,6 +58,12 @@ export class Wallet {
   @UpdateDateColumn({ type: 'datetime', name: 'updated_at' })
   updated_at: Date;
 
-  @OneToMany(() => Transaction, (transaction) => transaction.wallet)
-  transactions: Transaction[];
+  @OneToMany(() => Transaction, (transaction) => transaction.originWallet)
+  originTransactions: Transaction[];
+
+  @OneToMany(() => Transaction, (transaction) => transaction.destinationWallet)
+  targetTransactions: Transaction[];
+
+  @OneToMany(() => WalletLog, (walletLog) => walletLog.wallet)
+  logs: WalletLog[];
 }

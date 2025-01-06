@@ -11,6 +11,8 @@ import { TransactionAddress } from './transactionAddress/transaction-address.ent
 import { TransactionDetail } from './transactionDetail/transaction-detail.entity';
 import { Product } from '@app/product/entity/product.entity';
 import { WalletLog } from '../wallet/walletLogs/wallet-log.entity';
+import { Store } from '@app/store/store.entity';
+import { Customer } from '@app/customer/entity/customer.entity';
 
 @Module({
   imports: [
@@ -24,6 +26,8 @@ import { WalletLog } from '../wallet/walletLogs/wallet-log.entity';
       TransactionDetail,
       Product,
       WalletLog,
+      Store,
+      Customer,
     ]),
   ],
   providers: [TransactionService],

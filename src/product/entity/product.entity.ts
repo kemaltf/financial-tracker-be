@@ -13,6 +13,7 @@ import {
 } from 'typeorm';
 import { Image } from 'src/image/image.entity';
 import { ProductVariant } from './product-variant.entity';
+import { ColumnNumericTransformer } from '@app/common/transformer/column-numeric.transformer';
 
 @Entity('products')
 @Unique(['sku']) // Menambahkan constraint unik pada sku
@@ -32,7 +33,12 @@ export class Product {
   @Column({ type: 'int' })
   stock: number;
 
-  @Column({ type: 'decimal', precision: 10, scale: 2 })
+  @Column({
+    type: 'decimal',
+    precision: 12,
+    scale: 2,
+    transformer: new ColumnNumericTransformer(),
+  })
   price: number;
 
   @CreateDateColumn({ type: 'datetime', name: 'created_at' })
