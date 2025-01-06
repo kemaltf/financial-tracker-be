@@ -101,21 +101,12 @@ export class TransactionService {
       customer: {
         id: customer.id,
       },
-      address: {
-        recipientName: address?.recipientName,
-        addressLine1: address?.addressLine1,
-        addressLine2: address?.addressLine2 || null,
-        city: address?.city,
-        state: address?.state,
-        postalCode: address?.postalCode,
-        phoneNumber: address?.phoneNumber,
-      },
     });
     await this.transactionRepository.save(transaction);
 
     console.log('kebawah', transaction);
     // 4. Save address if exist
-    // if (address) await this.createTransactionAddress(transaction, address);
+    if (address) await this.createTransactionAddress(transaction, address);
 
     // 5. Save detail transaction if exist
     if (details?.length)
