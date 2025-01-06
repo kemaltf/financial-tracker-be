@@ -3,17 +3,19 @@ import {
   Entity,
   PrimaryGeneratedColumn,
   Column,
-  ManyToOne,
   CreateDateColumn,
   UpdateDateColumn,
+  OneToOne,
+  JoinColumn,
 } from 'typeorm';
 
-@Entity('transaction_addresses')
+@Entity('transaction_address')
 export class TransactionAddress {
   @PrimaryGeneratedColumn()
   id: number;
 
-  @ManyToOne(() => Transaction, (transaction) => transaction.address)
+  @OneToOne(() => Transaction, (transaction) => transaction.address)
+  @JoinColumn() // Menambahkan JoinColumn untuk relasi OneToOne
   transaction: Transaction;
 
   @Column('varchar', { length: 255 })

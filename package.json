@@ -18,7 +18,7 @@
     "test:cov": "jest --coverage",
     "test:debug": "node --inspect-brk -r tsconfig-paths/register -r ts-node/register node_modules/.bin/jest --runInBand",
     "test:e2e": "jest --config ./test/jest-e2e.json",
-    "seeder": "ts-node ./dist/database/seed-runner.js",
+    "db:seeder": "ts-node ./dist/database/seed-runner.js",
     "db:dropall": "npx typeorm schema:drop -d ./dist/database/orm.config.js",
     "db:create": "npx typeorm migration:run -d ./dist/database/orm.config.js",
     "db:sync": "npx typeorm schema:sync -d ./dist/database/orm.config.js"

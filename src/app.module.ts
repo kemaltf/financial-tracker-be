@@ -13,7 +13,7 @@ import { CategoryModule } from './category/category.module';
 import { TransactionDetailModule } from './transaction/transactionDetail/transaction-detail.module';
 import { TransactionAddressModule } from './transaction/transactionAddress/transaction-address.module';
 import { StoreModule } from './store/store.module';
-import { TransactionLogModule } from './transaction/transactionLogs/transaction-log.module';
+import { WalletLogModule } from './wallet/walletLogs/wallet-log.module';
 import { AccountingEntryModule } from './accountingEntry/accounting_entry.module';
 import { AccountModule } from './account/account.module';
 import { VariantModule } from './variant/variant.module';
@@ -34,7 +34,7 @@ import { CustomerModule } from './customer/customer.module';
     StoreModule,
     TransactionAddressModule,
     TransactionDetailModule,
-    TransactionLogModule,
+    WalletLogModule,
     TransactionModule,
     TransactionTypeModule,
     UserModule,
