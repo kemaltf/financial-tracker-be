@@ -18,6 +18,7 @@ import {
   OneToOne,
 } from 'typeorm';
 import { ColumnNumericTransformer } from '@app/common/transformer/column-numeric.transformer';
+import { DebtsAndReceivables } from '@app/debt-receivable/debts-and-receivables.entity';
 
 @Entity('transactions')
 export class Transaction {
@@ -95,4 +96,10 @@ export class Transaction {
   })
   @JoinColumn({ name: 'customer_id' })
   customer: Customer;
+
+  @OneToMany(
+    () => DebtsAndReceivables,
+    (debtsAndReceivables) => debtsAndReceivables.transaction,
+  )
+  debtsAndReceivables: DebtsAndReceivables[];
 }

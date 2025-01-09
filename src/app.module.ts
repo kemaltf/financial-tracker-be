@@ -20,6 +20,8 @@ import { VariantModule } from './variant/variant.module';
 import { ImageModule } from './image/image.module';
 import { AWSS3Module } from './aws/aws-s3.module';
 import { CustomerModule } from './customer/customer.module';
+import { DebtsAndReceivablesModule } from './debt-receivable/debts-and-receivables.module';
+import { DebtorModule } from './creditor-debtor/creditor-debtor.module';
 
 @Module({
   imports: [
@@ -41,6 +43,8 @@ import { CustomerModule } from './customer/customer.module';
     VariantModule,
     WalletModule,
     CustomerModule,
+    DebtsAndReceivablesModule,
+    DebtorModule,
     ConfigModule.forRoot({
       envFilePath: '.env.development.local',
       isGlobal: true,

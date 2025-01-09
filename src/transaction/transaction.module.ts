@@ -13,6 +13,8 @@ import { Product } from '@app/product/entity/product.entity';
 import { WalletLog } from '../wallet/walletLogs/wallet-log.entity';
 import { Store } from '@app/store/store.entity';
 import { Customer } from '@app/customer/entity/customer.entity';
+import { DebtsAndReceivables } from '@app/debt-receivable/debts-and-receivables.entity';
+import { DebtorCreditor } from '@app/creditor-debtor/creditor-debtor.entity';
 
 @Module({
   imports: [
@@ -28,6 +30,8 @@ import { Customer } from '@app/customer/entity/customer.entity';
       WalletLog,
       Store,
       Customer,
+      DebtsAndReceivables,
+      DebtorCreditor,
     ]),
   ],
   providers: [TransactionService],

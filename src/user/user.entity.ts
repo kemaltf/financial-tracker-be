@@ -1,4 +1,3 @@
-// src/user/user.entity.ts
 import { WalletLog } from '@app/wallet/walletLogs/wallet-log.entity';
 import { Transaction } from 'src/transaction/transaction.entity';
 import { Wallet } from 'src/wallet/wallet.entity';

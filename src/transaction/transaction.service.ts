@@ -17,6 +17,9 @@ import { Product } from '@app/product/entity/product.entity';
 import { WalletLog } from '../wallet/walletLogs/wallet-log.entity';
 import { Store } from '@app/store/store.entity';
 import { Customer } from '@app/customer/entity/customer.entity';
+import { DebtsAndReceivables } from '@app/debt-receivable/debts-and-receivables.entity';
+import { HandleErrors } from '@app/common/decorators';
+import { DebtorCreditor } from '@app/creditor-debtor/creditor-debtor.entity';
 
 @Injectable()
 export class TransactionService {
@@ -43,6 +46,10 @@ export class TransactionService {
     private readonly storeRepository: Repository<Store>,
     @InjectRepository(Customer)
     private readonly customerRepository: Repository<Customer>,
+    @InjectRepository(DebtsAndReceivables)
+    private readonly debtsAndReceivablesRepository: Repository<DebtsAndReceivables>,
+    @InjectRepository(DebtorCreditor)
+    private readonly debtorCreditorRepository: Repository<DebtorCreditor>,
   ) {}
 
   /**
@@ -53,6 +60,7 @@ export class TransactionService {
    * Proses logikanya di bagian ini
    *
    */
+  // @HandleErrors()
   async createTransaction(
     userId: string,
     transactionDTO: TransactionDTO,
@@ -67,8 +75,9 @@ export class TransactionService {
       storeId,
       destinationWalletId,
       customerId,
+      dueDate,
+      financialPartyId,
     } = transactionDTO;
-
     console.log('transsaction', transactionDTO);
 
     // 1. Validate transaction type
@@ -85,8 +94,21 @@ export class TransactionService {
     );
 
     // 3. Validate Store
-    const store = await this.validateStore(storeId);
-    const customer = await this.validateCustomemr(customerId);
+    // Validate store if storeId exists
+    const store = storeId ? await this.validateStore(storeId) : null;
+
+    // Validate customer if customerId exists
+    const customer = customerId
+      ? await this.validateCustomer(customerId)
+      : null;
+
+    // Validate customer if customerId exists
+    const financialParty = financialPartyId
+      ? await this.validateFinancialParty(
+          financialPartyId,
+          transactionType.name,
+        )
+      : null;
 
     // 3. Create a transaction
     const transaction = this.transactionRepository.create({
@@ -97,9 +119,9 @@ export class TransactionService {
       amount,
       description,
       date: new Date(),
-      store: { id: store.id },
+      store: { id: store?.id },
       customer: {
-        id: customer.id,
+        id: customer?.id,
       },
     });
     await this.transactionRepository.save(transaction);
@@ -120,6 +142,8 @@ export class TransactionService {
       destinationWallet,
       amount,
       userId,
+      dueDate,
+      financialParty?.id,
     );
 
     return transaction;
@@ -136,7 +160,7 @@ export class TransactionService {
     return store;
   }
 
-  private async validateCustomemr(customerId: number) {
+  private async validateCustomer(customerId: number) {
     // Periksa keberadaan store
     const store = await this.customerRepository.findOne({
       where: { id: customerId },
@@ -147,6 +171,39 @@ export class TransactionService {
       );
     }
     return store;
+  }
+
+  private async validateFinancialParty(
+    financialPartyId: number,
+    transactionTypeName: string,
+  ) {
+    // Periksa keberadaan store
+    if (transactionTypeName !== 'Hutang' && transactionTypeName !== 'Piutang') {
+      console.error('KESINI GA WOIU?');
+      throw new BadRequestException(
+        'Invalid transaction type. Must be either "Hutang" or "Piutang".',
+      );
+    }
+
+    let debtorCreditor;
+    if (transactionTypeName === 'Hutang') {
+      debtorCreditor = await this.debtorCreditorRepository.findOne({
+        where: { id: financialPartyId, role: 'debtor' },
+      });
+    }
+
+    if (transactionTypeName === 'Piutang') {
+      debtorCreditor = await this.debtorCreditorRepository.findOne({
+        where: { id: financialPartyId, role: 'creditor' },
+      });
+    }
+
+    if (!debtorCreditor) {
+      throw new NotFoundException(
+        `Debtor or Creditor with ID ${financialPartyId} does not exist.`,
+      );
+    }
+    return debtorCreditor;
   }
 
   /**
@@ -170,12 +227,10 @@ export class TransactionService {
       throw new NotFoundException('Wallet not found');
 
     // Validate wallet balance if it's a debit transaction
-    if (
-      this.isDebitTransaction(transactionType) &&
-      this.checkWalletBalance(originWallet, amount)
-    ) {
-      throw new Error('Insufficient balance for this transaction');
+    if (this.isDebitTransaction(transactionType)) {
+      this.checkWalletBalance(originWallet, amount);
     }
+
     return [originWallet, destinationWallet];
   }
 
@@ -206,17 +261,13 @@ export class TransactionService {
   /**
    * Helper to check wallet balance
    */
-  private async checkWalletBalance(
-    wallet: Wallet,
-    amount: number,
-  ): Promise<void> {
-    console.log('wallet?', wallet);
-    console.log('typeof', typeof wallet.balance);
+  private checkWalletBalance(wallet: Wallet, amount: number) {
     if (wallet.balance < amount) {
       throw new BadRequestException(
         'Insufficient balance for this transaction',
       );
     }
+    return null;
   }
 
   /**
@@ -228,6 +279,7 @@ export class TransactionService {
       'Pengeluaran Piutang',
       'Tarik Modal',
       'Transfer',
+      'Piutang',
     ];
     return debitTransactionTypes.includes(transactionTypeName);
   }
@@ -321,6 +373,8 @@ export class TransactionService {
     destinationWallet: Wallet,
     amount: number,
     userId: string,
+    dueDate?: Date,
+    financialPartyId?: number,
   ): Promise<void> {
     // Get account id
     const cashAccount = await this.getAccountByCode('101');
@@ -358,7 +412,7 @@ export class TransactionService {
         break;
 
       case 'Pengeluaran':
-        await this.checkWalletBalance(originWallet, amount);
+        // await this.checkWalletBalance(originWallet, amount);
         originWallet.balance -= amount;
         entries.push(
           this.createAccountingEntry(
@@ -380,6 +434,20 @@ export class TransactionService {
 
       case 'Hutang':
         originWallet.balance += amount;
+
+        if (!financialPartyId) {
+          throw new NotFoundException(
+            `Debtor with ID ${financialPartyId} not found`,
+          );
+        }
+
+        // Update DebtsAndReceivables table for debt creation
+        await this.createDebtEntry(
+          transaction,
+          amount,
+          dueDate,
+          financialPartyId,
+        );
         entries.push(
           this.createAccountingEntry(
             transaction,
@@ -399,8 +467,23 @@ export class TransactionService {
         break;
 
       case 'Piutang':
-        await this.checkWalletBalance(originWallet, amount);
+        // await this.checkWalletBalance(originWallet, amount);
         originWallet.balance -= amount;
+
+        if (!financialPartyId) {
+          throw new NotFoundException(
+            `Creditor with ID ${financialPartyId} not found`,
+          );
+        }
+
+        // Update DebtsAndReceivables table for receivable creation
+        await this.createReceivableEntry(
+          transaction,
+          amount,
+          dueDate,
+          financialPartyId,
+        );
+
         entries.push(
           this.createAccountingEntry(
             transaction,
@@ -440,7 +523,7 @@ export class TransactionService {
         break;
 
       case 'Tarik Modal':
-        await this.checkWalletBalance(originWallet, amount);
+        // await this.checkWalletBalance(originWallet, amount);
         originWallet.balance -= amount;
         entries.push(
           this.createAccountingEntry(
@@ -499,9 +582,9 @@ export class TransactionService {
     }
 
     // Check if the source wallet has enough balance for the transfer
-    if (originWallet.balance < amount) {
-      throw new BadRequestException('Insufficient balance for the transfer');
-    }
+    // if (originWallet.balance < amount) {
+    //   throw new BadRequestException('Insufficient balance for the transfer');
+    // }
 
     // Deduct the amount from the source wallet
     originWallet.balance -= amount;
@@ -546,5 +629,41 @@ export class TransactionService {
         wallet: originWallet,
       }),
     );
+  }
+
+  // Helper function to create debt entry
+  private async createDebtEntry(
+    transaction: Transaction,
+    amount: number,
+    dueDate: Date,
+    debtorId: number,
+  ): Promise<void> {
+    const debtEntry = this.debtsAndReceivablesRepository.create({
+      amount,
+      transaction,
+      type: 'debt',
+      dueDate,
+      status: 'pending',
+      financial_party: { id: debtorId },
+    });
+    await this.debtsAndReceivablesRepository.save(debtEntry);
+  }
+
+  // Helper function to create receivable entry
+  private async createReceivableEntry(
+    transaction: Transaction,
+    amount: number,
+    dueDate: Date,
+    creditorId: number,
+  ): Promise<void> {
+    const receivableEntry = this.debtsAndReceivablesRepository.create({
+      amount,
+      transaction,
+      type: 'receivable',
+      dueDate,
+      status: 'pending',
+      financial_party: { id: creditorId },
+    });
+    await this.debtsAndReceivablesRepository.save(receivableEntry);
   }
 }

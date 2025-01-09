@@ -6,6 +6,7 @@ import {
   UpdateDateColumn,
   OneToMany,
   ManyToMany,
+  Unique,
 } from 'typeorm';
 import { Transaction } from 'src/transaction/transaction.entity';
 import { User } from 'src/user/user.entity';
@@ -20,6 +21,7 @@ export enum WalletType {
 }
 
 @Entity('wallet')
+@Unique(['account_number']) // Menandakan kolom account_number harus unik jika ada nilai
 export class Wallet {
   @PrimaryGeneratedColumn()
   id: number; //

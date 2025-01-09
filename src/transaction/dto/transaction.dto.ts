@@ -1,9 +1,11 @@
+import { Type } from 'class-transformer';
 import {
   IsNotEmpty,
   IsNumber,
   IsString,
   IsOptional,
   IsArray,
+  IsDate,
 } from 'class-validator';
 
 export class TransactionDTO {
@@ -33,7 +35,16 @@ export class TransactionDTO {
 
   @IsNumber()
   @IsOptional()
+  financialPartyId?: number;
+
+  @IsNumber()
+  @IsOptional()
   customerId?: number;
+
+  @IsOptional()
+  @IsDate() // Memvalidasi bahwa string tersebut memiliki format ISO8601
+  @Type(() => Date) // Mengonversi string menjadi objek Date
+  dueDate?: Date; // Menerima string sebagai dueDate
 
   @IsOptional()
   address?: {

@@ -13,6 +13,7 @@ export function HandleErrors() {
       try {
         return await originalMethod.apply(this, args);
       } catch (error) {
+        console.log(error);
         if (error instanceof QueryFailedError) {
           const driverError = error.driverError;
 
