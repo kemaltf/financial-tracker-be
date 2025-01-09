@@ -14,39 +14,58 @@ export class AccountSeeder {
     // Data yang akan dimasukkan ke dalam tabel accounts
     const accounts = [
       {
+        code: '101',
         name: 'Kas',
         type: 'ASSET' as AccountType,
-        description: 'Saldo tunai perusahaan',
+        description: 'Uang tunai dan setara kas',
       },
       {
-        name: 'Pendapatan Penjualan',
-        type: 'REVENUE' as AccountType,
-        description: 'Pendapatan dari penjualan produk',
+        code: '102',
+        name: 'Bank',
+        type: 'ASSET' as AccountType,
+        description: 'Saldo di rekening bank',
       },
       {
-        name: 'Biaya Operasional',
-        type: 'EXPENSE' as AccountType,
-        description: 'Biaya operasional seperti ongkir, bubble wrap, dll',
+        code: '103',
+        name: 'Piutang Usaha',
+        type: 'ASSET' as AccountType,
+        description: 'Piutang dari pelanggan',
       },
       {
-        name: 'Utang Jangka Panjang',
+        code: '201',
+        name: 'Hutang Usaha',
         type: 'LIABILITY' as AccountType,
-        description: 'Kewajiban utang jangka panjang',
+        description: 'Kewajiban kepada kreditur',
       },
       {
+        code: '301',
         name: 'Modal Pemilik',
         type: 'EQUITY' as AccountType,
-        description: 'Modal yang ditanam oleh pemilik bisnis',
+        description: 'Investasi pemilik dalam bisnis',
       },
       {
-        name: 'Piutang dari Pembeli',
-        type: 'ASSET' as AccountType,
-        description: 'Piutang yang belum dibayar oleh pembeli',
+        code: '401',
+        name: 'Pendapatan Usaha',
+        type: 'REVENUE' as AccountType,
+        description: 'Pendapatan dari operasional',
       },
       {
-        name: 'Pajak Penghasilan',
+        code: '501',
+        name: 'Beban Operasional',
         type: 'EXPENSE' as AccountType,
-        description: 'Biaya pajak yang dibayar ke negara',
+        description: 'Biaya-biaya operasional bisnis',
+      },
+      {
+        code: '601',
+        name: 'Beban Pajak',
+        type: 'EXPENSE' as AccountType,
+        description: 'Beban pajak penghasilan',
+      },
+      {
+        code: '701',
+        name: 'E-Wallet',
+        type: 'ASSET' as AccountType,
+        description: 'Saldo di e-wallet untuk transaksi digital',
       },
     ];
 

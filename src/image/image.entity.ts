@@ -4,7 +4,8 @@ import {
   Column,
   CreateDateColumn,
   UpdateDateColumn,
-  ManyToOne,
+  ManyToMany,
+  JoinTable,
 } from 'typeorm';
 import { ProductVariant } from 'src/product/entity/product-variant.entity';
 import { Product } from 'src/product/entity/product.entity';
@@ -26,13 +27,24 @@ export class Image {
   @Column({ type: 'bigint' })
   size: number; // Ukuran file dalam byte
 
-  @ManyToOne(() => Product, (product) => product.images, { nullable: true })
-  product: Product;
-
-  @ManyToOne(() => ProductVariant, (variant) => variant.images, {
-    nullable: true,
+  @ManyToMany(() => Product, (product) => product.images)
+  @JoinTable({
+    name: 'product_images',
+    joinColumn: { name: 'image_id', referencedColumnName: 'id' },
+    inverseJoinColumn: { name: 'product_id', referencedColumnName: 'id' },
   })
-  productVariant: ProductVariant;
+  products: Product[];
+
+  @ManyToMany(() => ProductVariant, (variant) => variant.images)
+  @JoinTable({
+    name: 'product_variant_images',
+    joinColumn: { name: 'image_id', referencedColumnName: 'id' },
+    inverseJoinColumn: {
+      name: 'product_variant_id',
+      referencedColumnName: 'id',
+    },
+  })
+  productVariants: ProductVariant[];
 
   @CreateDateColumn({ type: 'datetime', name: 'created_at' })
   created_at: Date;

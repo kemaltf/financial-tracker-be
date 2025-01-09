@@ -29,7 +29,7 @@ export class WalletService {
     }
 
     const wallet = this.walletRepository.create({
-      user,
+      users: [user],
       wallet_type: createWalletDto.wallet_type,
       balance: createWalletDto.balance,
       account_number: createWalletDto.account_number,
@@ -42,7 +42,7 @@ export class WalletService {
   // Get all wallets for a user
   async findAllByUser(username: string): Promise<Wallet[]> {
     return this.walletRepository.find({
-      where: { user: { username: username } },
+      where: { users: { username: username } },
       relations: ['transactions'],
     });
   }
@@ -62,7 +62,7 @@ export class WalletService {
     updateWalletDto: UpdateWalletDto,
   ): Promise<Wallet> {
     const wallet = await this.walletRepository.findOne({
-      where: { id, user: { username } },
+      where: { id, users: { username } },
     });
 
     if (!wallet) {
@@ -83,7 +83,7 @@ export class WalletService {
   // Delete a wallet
   async remove(username: string, id: number): Promise<void> {
     const wallet = await this.walletRepository.findOne({
-      where: { id, user: { username } },
+      where: { id, users: { username } },
     });
     if (!wallet) {
       throw new Error('Wallet not found');

@@ -1,22 +1,13 @@
 import { Module } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
+import { getDatabaseConfig } from './database.config';
 
 @Module({
   imports: [
     TypeOrmModule.forRootAsync({
       inject: [ConfigService],
-      useFactory: (config: ConfigService) => ({
-        type: 'mysql',
-        host: config.get<string>('DB_HOST'),
-        port: config.get<number>('DB_PORT'),
-        username: config.get<string>('DB_USERNAME'),
-        password: config.get<string>('DB_PASSWORD'),
-        database: config.get<string>('DB_NAME'),
-        autoLoadEntities: true,
-        synchronize: config.get<boolean>('DB_SYNC', false), // Default ke false
-        logging: true, // Aktifkan logging untuk debugging 0
-      }),
+      useFactory: (config: ConfigService) => getDatabaseConfig(config),
     }),
   ],
   exports: [TypeOrmModule],

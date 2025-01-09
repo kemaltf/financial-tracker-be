@@ -21,6 +21,9 @@ export class Account {
   @PrimaryGeneratedColumn()
   id: number;
 
+  @Column({ unique: true })
+  code: string; // Kode akun, misalnya "101", "201", dll.
+
   @Column({ type: 'varchar', length: 100, unique: true })
   name: string; // Nama akun, misalnya "Kas", "Pendapatan", "Biaya Operasional"
 

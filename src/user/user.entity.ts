@@ -1,4 +1,4 @@
-// src/user/user.entity.ts
+import { WalletLog } from '@app/wallet/walletLogs/wallet-log.entity';
 import { Transaction } from 'src/transaction/transaction.entity';
 import { Wallet } from 'src/wallet/wallet.entity';
 import {
@@ -8,6 +8,8 @@ import {
   CreateDateColumn,
   UpdateDateColumn,
   OneToMany,
+  ManyToMany,
+  JoinTable,
 } from 'typeorm';
 
 export enum UserRole {
@@ -51,6 +53,20 @@ export class User {
   @OneToMany(() => Transaction, (transaction) => transaction.user)
   Transactions: Transaction[];
 
-  @OneToMany(() => Wallet, (wallet) => wallet.user)
+  @ManyToMany(() => Wallet, (wallet) => wallet.users)
+  @JoinTable({
+    name: 'user_wallet_access', // Nama tabel penghubung
+    joinColumn: {
+      name: 'user_id',
+      referencedColumnName: 'id',
+    },
+    inverseJoinColumn: {
+      name: 'wallet_id',
+      referencedColumnName: 'id',
+    },
+  })
   wallets: Wallet[];
+
+  @OneToMany(() => WalletLog, (log) => log.performed_by)
+  transactionLogs: WalletLog[];
 }

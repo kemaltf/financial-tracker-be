@@ -1,23 +1,26 @@
-import { Transaction } from 'src/transaction/transaction.entity';
 import {
   Entity,
   PrimaryGeneratedColumn,
   Column,
-  ManyToOne,
+  OneToMany,
   CreateDateColumn,
   UpdateDateColumn,
 } from 'typeorm';
+import { Transaction } from 'src/transaction/transaction.entity';
 
-@Entity('transaction_addresses')
-export class TransactionAddress {
+@Entity('customers')
+export class Customer {
   @PrimaryGeneratedColumn()
   id: number;
 
-  @ManyToOne(() => Transaction, (transaction) => transaction.address)
-  transaction: Transaction;
-
   @Column('varchar', { length: 255 })
-  recipientName: string;
+  name: string;
+
+  @Column('varchar', { length: 255, unique: true })
+  email: string;
+
+  @Column('varchar', { length: 20, nullable: true })
+  phone: string;
 
   @Column('varchar', { length: 255 })
   addressLine1: string;
@@ -34,12 +37,12 @@ export class TransactionAddress {
   @Column('varchar', { length: 20 })
   postalCode: string;
 
-  @Column('varchar', { length: 20 })
-  phoneNumber: string;
-
-  @CreateDateColumn()
+  @CreateDateColumn({ type: 'timestamp' })
   createdAt: Date;
 
-  @UpdateDateColumn()
+  @UpdateDateColumn({ type: 'timestamp' })
   updatedAt: Date;
+
+  @OneToMany(() => Transaction, (transaction) => transaction.customer)
+  transactions: Transaction[];
 }

@@ -4,12 +4,14 @@ import {
   Column,
   CreateDateColumn,
   UpdateDateColumn,
-  ManyToOne,
-  JoinColumn,
   OneToMany,
+  ManyToMany,
+  Unique,
 } from 'typeorm';
 import { Transaction } from 'src/transaction/transaction.entity';
 import { User } from 'src/user/user.entity';
+import { WalletLog } from './walletLogs/wallet-log.entity';
+import { ColumnNumericTransformer } from '@app/common/transformer/column-numeric.transformer';
 
 export enum WalletType {
   CASH = 'Cash',
@@ -19,13 +21,13 @@ export enum WalletType {
 }
 
 @Entity('wallet')
+@Unique(['account_number']) // Menandakan kolom account_number harus unik jika ada nilai
 export class Wallet {
   @PrimaryGeneratedColumn()
   id: number; //
 
-  @ManyToOne(() => User, (user) => user.wallets)
-  @JoinColumn({ name: 'user_id' })
-  user: User;
+  @ManyToMany(() => User, (user) => user.wallets)
+  users: User[];
 
   @Column({
     type: 'enum',
@@ -34,7 +36,13 @@ export class Wallet {
   })
   wallet_type: 'Cash' | 'Bank' | 'PayPal' | 'Other';
 
-  @Column({ type: 'decimal', precision: 10, scale: 2, default: 0.0 })
+  @Column({
+    type: 'decimal',
+    precision: 12,
+    scale: 2,
+    default: 0,
+    transformer: new ColumnNumericTransformer(),
+  })
   balance: number;
 
   @Column({ type: 'varchar', length: 255, nullable: true })
@@ -52,6 +60,12 @@ export class Wallet {
   @UpdateDateColumn({ type: 'datetime', name: 'updated_at' })
   updated_at: Date;
 
-  @OneToMany(() => Transaction, (transaction) => transaction.wallet)
-  transactions: Transaction[];
+  @OneToMany(() => Transaction, (transaction) => transaction.originWallet)
+  originTransactions: Transaction[];
+
+  @OneToMany(() => Transaction, (transaction) => transaction.destinationWallet)
+  targetTransactions: Transaction[];
+
+  @OneToMany(() => WalletLog, (walletLog) => walletLog.wallet)
+  logs: WalletLog[];
 }

@@ -13,11 +13,16 @@ import { Public } from 'src/common/decorators';
 import { Request, Response } from 'express';
 import { CreateUserDto } from 'src/user/dto/create-user.dto';
 import { LoginUserDto } from './dto/login-service.dto';
+import { ApiTags, ApiOperation, ApiResponse } from '@nestjs/swagger';
 
+@ApiTags('Authentication')
 @Controller('auth')
 export class AuthController {
   constructor(private authService: AuthService) {}
 
+  @ApiOperation({ summary: 'Sign up a new user' })
+  @ApiResponse({ status: 201, description: 'User successfully signed up' })
+  @ApiResponse({ status: 400, description: 'Validation error' })
   @HttpCode(HttpStatus.CREATED)
   @Public()
   @Post('signup')
@@ -25,6 +30,9 @@ export class AuthController {
     return this.authService.signUp(signUpDto);
   }
 
+  @ApiOperation({ summary: 'Sign in a user' })
+  @ApiResponse({ status: 200, description: 'User successfully signed in' })
+  @ApiResponse({ status: 401, description: 'Invalid credentials' })
   @HttpCode(HttpStatus.OK)
   @Public()
   @Post('signin')
@@ -32,9 +40,7 @@ export class AuthController {
     @Body() signInDto: LoginUserDto,
     @Res({ passthrough: true }) response: Response,
   ) {
-    console.log(signInDto);
     const signIn = await this.authService.signIn(signInDto);
-    console.log(signIn);
     const isProduction = false;
 
     // const signInDummy = {
@@ -59,6 +65,15 @@ export class AuthController {
     });
   }
 
+  @ApiOperation({ summary: 'Refresh the access token' })
+  @ApiResponse({
+    status: 200,
+    description: 'Access token successfully refreshed',
+  })
+  @ApiResponse({
+    status: 401,
+    description: 'Refresh token not found or expired',
+  })
   @Public()
   @HttpCode(HttpStatus.OK)
   @Post('refresh')
@@ -66,10 +81,7 @@ export class AuthController {
     @Req() req: Request, // Use Request to access cookies
     @Res({ passthrough: true }) response: Response,
   ) {
-    console.log('kesini', req.cookies);
     const refreshToken = req.cookies?.['refreshToken']; // Get refresh token from cookies
-
-    console.log('tes', refreshToken);
 
     if (!refreshToken) {
       throw new UnauthorizedException('Refresh token not found');
