@@ -60,7 +60,7 @@ export class TransactionService {
    * Proses logikanya di bagian ini
    *
    */
-  // @HandleErrors()
+  @HandleErrors()
   async createTransaction(
     userId: string,
     transactionDTO: TransactionDTO,
@@ -665,5 +665,90 @@ export class TransactionService {
       financial_party: { id: creditorId },
     });
     await this.debtsAndReceivablesRepository.save(receivableEntry);
+  }
+
+  async getFinancialSummary() {
+    const totalIncome = await this.transactionRepository.sum('amount', {
+      transactionType: { name: 'Pemasukan' },
+    });
+    const totalExpense = await this.transactionRepository.sum('amount', {
+      transactionType: { name: 'Pengeluaran' },
+    });
+    const totalDebt = await this.transactionRepository.sum('amount', {
+      transactionType: { name: 'Hutang' },
+    });
+    const totalReceivables = await this.transactionRepository.sum('amount', {
+      transactionType: { name: 'Piutang' },
+    });
+    const totalInvestment = await this.transactionRepository.sum('amount', {
+      transactionType: { name: 'Tanam Modal' },
+    });
+    const totalWithdrawal = await this.transactionRepository.sum('amount', {
+      transactionType: { name: 'Tarik Modal' },
+    });
+    const totalTransfer = await this.transactionRepository.sum('amount', {
+      transactionType: { name: 'Transfer' },
+    });
+    const totalReceivablesIncome = await this.transactionRepository.sum(
+      'amount',
+      { transactionType: { name: 'Pemasukan Piutang' } },
+    );
+    const totalReceivablesExpense = await this.transactionRepository.sum(
+      'amount',
+      { transactionType: { name: 'Pengeluaran Piutang' } },
+    );
+    const cashBalance = await this.walletRepository.sum('balance');
+
+    return {
+      totalIncome,
+      totalExpense,
+      totalDebt,
+      totalReceivables,
+      totalInvestment,
+      totalWithdrawal,
+      totalTransfer,
+      totalReceivablesIncome,
+      totalReceivablesExpense,
+      profitLoss: totalIncome - totalExpense,
+      cashBalance,
+    };
+  }
+
+  async getMonthlyTrends() {
+    const trends = await this.transactionRepository.query(`
+      SELECT
+        DATE_FORMAT(t.date, '%Y-%m-01') AS month,
+        SUM(CASE WHEN tt.name = 'Pemasukan' THEN t.amount ELSE 0 END) AS totalIncome,
+        SUM(CASE WHEN tt.name = 'Pengeluaran' THEN t.amount ELSE 0 END) AS totalExpense
+      FROM transactions t
+      LEFT JOIN transaction_types tt
+      ON t.transaction_type_id = tt.id 
+      GROUP BY month
+      ORDER BY month
+    `);
+    return trends;
+  }
+
+  async checkForAnomalies() {
+    // Melakukan query ke database untuk mendeteksi pengeluaran yang tidak wajar
+    const anomalies = await this.transactionRepository.query(`
+      SELECT *
+      FROM transactions t
+      LEFT JOIN transaction_types tt
+      ON t.transaction_type_id = tt.id 
+      WHERE 
+        -- Memeriksa hanya transaksi dengan jenis 'Pengeluaran'
+        tt.name = 'Pengeluaran' 
+        AND 
+        -- Memeriksa pengeluaran yang lebih besar dari 1.5 kali rata-rata pengeluaran
+        amount > (
+          SELECT AVG(amount) * 1.5 
+          FROM transactions 
+          WHERE tt.name = 'Pengeluaran'
+        )
+    `);
+
+    // Mengembalikan transaksi yang dianggap anomali
+    return anomalies;
   }
 }
