@@ -1,9 +1,7 @@
-import { AccountingEntry } from 'src/accountingEntry/accounting_entry.entity';
 import {
   Entity,
   PrimaryGeneratedColumn,
   Column,
-  OneToMany,
   CreateDateColumn,
   UpdateDateColumn,
 } from 'typeorm';
@@ -35,9 +33,6 @@ export class Account {
 
   @Column({ type: 'varchar', length: 255, nullable: true })
   description: string; // Deskripsi opsional
-
-  @OneToMany(() => AccountingEntry, (entry) => entry.account)
-  entries: AccountingEntry[];
 
   @CreateDateColumn({ type: 'timestamp' })
   created_at: Date;

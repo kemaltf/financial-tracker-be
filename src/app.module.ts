@@ -14,7 +14,6 @@ import { TransactionDetailModule } from './transaction/transactionDetail/transac
 import { TransactionAddressModule } from './transaction/transactionAddress/transaction-address.module';
 import { StoreModule } from './store/store.module';
 import { WalletLogModule } from './wallet/walletLogs/wallet-log.module';
-import { AccountingEntryModule } from './accountingEntry/accounting_entry.module';
 import { AccountModule } from './account/account.module';
 import { VariantModule } from './variant/variant.module';
 import { ImageModule } from './image/image.module';
@@ -27,7 +26,6 @@ import { DebtorModule } from './creditor-debtor/creditor-debtor.module';
   imports: [
     AWSS3Module,
     AccountModule,
-    AccountingEntryModule,
     AuthModule,
     CategoryModule,
     DatabaseModule,
