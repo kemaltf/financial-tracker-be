@@ -1,9 +1,9 @@
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
-import { TransactionDetail } from './transaction-detail.entity';
+import { TransactionProduct } from './transaction-detail.entity';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([TransactionDetail])],
+  imports: [TypeOrmModule.forFeature([TransactionProduct])],
   providers: [],
   exports: [],
 })

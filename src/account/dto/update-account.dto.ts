@@ -1,5 +1,4 @@
-import { IsString, IsOptional, IsEnum, MaxLength } from 'class-validator';
-import { AccountType } from '../account.entity';
+import { IsString, IsOptional, MaxLength } from 'class-validator';
 
 export class UpdateAccountDTO {
   @IsString()
@@ -11,10 +10,6 @@ export class UpdateAccountDTO {
   @IsOptional()
   @MaxLength(100, { message: 'Name must not exceed 100 characters' })
   name?: string; // Nama akun opsional
-
-  @IsEnum(AccountType, { message: 'Invalid account type' })
-  @IsOptional()
-  type?: AccountType; // Jenis akun opsional
 
   @IsString()
   @IsOptional()

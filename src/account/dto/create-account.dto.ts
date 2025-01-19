@@ -1,11 +1,4 @@
-import {
-  IsString,
-  IsNotEmpty,
-  IsOptional,
-  IsEnum,
-  MaxLength,
-} from 'class-validator';
-import { AccountType } from '../account.entity';
+import { IsString, IsNotEmpty, IsOptional, MaxLength } from 'class-validator';
 
 export class CreateAccountDTO {
   @IsString()
@@ -17,10 +10,6 @@ export class CreateAccountDTO {
   @IsNotEmpty({ message: 'Name is required' })
   @MaxLength(100, { message: 'Name must not exceed 100 characters' })
   name: string; // Nama akun
-
-  @IsEnum(AccountType, { message: 'Invalid account type' })
-  @IsNotEmpty({ message: 'Type is required' })
-  type: AccountType; // Jenis akun
 
   @IsString()
   @IsOptional()

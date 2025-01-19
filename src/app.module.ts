@@ -7,13 +7,11 @@ import { APP_GUARD } from '@nestjs/core';
 import { JwtAuthGuard } from './auth/jwt-auth.guard';
 import { TransactionTypeModule } from './transaction/transactionType/transaction-type.module';
 import { TransactionModule } from './transaction/transaction.module';
-import { WalletModule } from './wallet/wallet.module';
 import { ProductModule } from './product/product.module';
 import { CategoryModule } from './category/category.module';
 import { TransactionDetailModule } from './transaction/transactionDetail/transaction-detail.module';
-import { TransactionAddressModule } from './transaction/transactionAddress/transaction-address.module';
+import { TransactionContactModule } from './transaction/transaction-contact/transaction-contact.module';
 import { StoreModule } from './store/store.module';
-import { WalletLogModule } from './wallet/walletLogs/wallet-log.module';
 import { AccountModule } from './account/account.module';
 import { VariantModule } from './variant/variant.module';
 import { ImageModule } from './image/image.module';
@@ -32,14 +30,12 @@ import { DebtorModule } from './creditor-debtor/creditor-debtor.module';
     ImageModule,
     ProductModule,
     StoreModule,
-    TransactionAddressModule,
+    TransactionContactModule,
     TransactionDetailModule,
-    WalletLogModule,
     TransactionModule,
     TransactionTypeModule,
     UserModule,
     VariantModule,
-    WalletModule,
     CustomerModule,
     DebtsAndReceivablesModule,
     DebtorModule,

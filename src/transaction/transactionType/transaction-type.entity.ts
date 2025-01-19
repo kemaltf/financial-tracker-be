@@ -19,6 +19,12 @@ export class TransactionType {
   @Column({ type: 'text', nullable: true })
   description: string;
 
+  @Column({ type: 'simple-array', nullable: true })
+  debit: string[];
+
+  @Column({ type: 'simple-array', nullable: true })
+  credit: string[];
+
   @CreateDateColumn({ type: 'timestamp', name: 'created_at' })
   createdAt: Date;
 
