@@ -156,6 +156,113 @@ export class AccountSeeder {
         balanceImpact: BalanceImpactSide.DEBIT, // Tambahkan balanceImpact
         description: 'Biaya transportasi untuk operasional usaha',
       },
+      {
+        code: '4-30300',
+        name: 'Affiliate Revenue',
+        type: AccountType.REVENUE,
+        balanceImpact: BalanceImpactSide.CREDIT,
+        description: 'Pendapatan dari program afiliasi atau referensi.',
+      },
+      {
+        code: '4-30400',
+        name: 'Subscription Revenue',
+        type: AccountType.REVENUE,
+        balanceImpact: BalanceImpactSide.CREDIT,
+        description: 'Pendapatan dari layanan berbasis langganan.',
+      },
+      {
+        code: '4-30500',
+        name: 'Digital Product Sales',
+        type: AccountType.REVENUE,
+        balanceImpact: BalanceImpactSide.CREDIT,
+        description:
+          'Pendapatan dari penjualan produk digital seperti e-book, kursus online, atau template.',
+      },
+
+      {
+        code: '4-30700',
+        name: 'Marketplace Commission',
+        type: AccountType.REVENUE,
+        balanceImpact: BalanceImpactSide.CREDIT,
+        description: 'Komisi dari penjualan produk di marketplace online.',
+      },
+      {
+        code: '4-30800',
+        name: 'Dropshipping Revenue',
+        type: AccountType.REVENUE,
+        balanceImpact: BalanceImpactSide.CREDIT,
+        description: 'Pendapatan dari model bisnis dropshipping.',
+      },
+      {
+        code: '4-30900',
+        name: 'Freemium Upsell Revenue',
+        type: AccountType.REVENUE,
+        balanceImpact: BalanceImpactSide.CREDIT,
+        description:
+          'Pendapatan dari pelanggan yang meningkatkan layanan dari gratis ke berbayar.',
+      },
+      {
+        code: '4-31000',
+        name: 'Sponsored Content Revenue',
+        type: AccountType.REVENUE,
+        balanceImpact: BalanceImpactSide.CREDIT,
+        description:
+          'Pendapatan dari konten bersponsor seperti posting blog, video, atau ulasan.',
+      },
+      {
+        code: '4-31100',
+        name: 'Event Ticket Sales',
+        type: AccountType.REVENUE,
+        balanceImpact: BalanceImpactSide.CREDIT,
+        description:
+          'Pendapatan dari penjualan tiket acara online seperti webinar atau pelatihan.',
+      },
+      {
+        code: '4-31200',
+        name: 'Freelance Service Revenue',
+        type: AccountType.REVENUE,
+        balanceImpact: BalanceImpactSide.CREDIT,
+        description:
+          'Pendapatan dari layanan freelance seperti desain grafis, penulisan, atau konsultasi.',
+      },
+      {
+        code: '4-31300',
+        name: 'White Labeling Revenue',
+        type: AccountType.REVENUE,
+        balanceImpact: BalanceImpactSide.CREDIT,
+        description:
+          'Pendapatan dari produk atau layanan yang dijual dengan merek pelanggan.',
+      },
+      {
+        code: '4-31400',
+        name: 'Platform Usage Fees',
+        type: AccountType.REVENUE,
+        balanceImpact: BalanceImpactSide.CREDIT,
+        description:
+          'Pendapatan dari biaya penggunaan platform, seperti layanan SaaS.',
+      },
+      {
+        code: '4-31500',
+        name: 'Course Enrollment Revenue',
+        type: AccountType.REVENUE,
+        balanceImpact: BalanceImpactSide.CREDIT,
+        description: 'Pendapatan dari pendaftaran kursus online.',
+      },
+      {
+        code: '4-31600',
+        name: 'Reseller Revenue',
+        type: AccountType.REVENUE,
+        balanceImpact: BalanceImpactSide.CREDIT,
+        description:
+          'Pendapatan dari penjualan kembali produk dengan margin keuntungan.',
+      },
+      {
+        code: '4-31700',
+        name: 'Consultation Fees',
+        type: AccountType.REVENUE,
+        balanceImpact: BalanceImpactSide.CREDIT,
+        description: 'Pendapatan dari layanan konsultasi bisnis atau teknis.',
+      },
     ];
 
     // Menambahkan data ke dalam tabel sub-accounts

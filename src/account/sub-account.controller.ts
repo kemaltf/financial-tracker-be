@@ -14,7 +14,7 @@ import { UpdateAccountDTO } from './dto/update-account.dto';
 import { SubAccount } from './sub-account.entity';
 
 @Controller('accounts')
-export class AccountController {
+export class subAccountController {
   constructor(private readonly subAccountService: SubAccountService) {}
 
   @Post()
@@ -61,6 +61,7 @@ export class AccountController {
   async getAvailableAccounts(
     @Param('transactionTypeId') transactionTypeId: number,
   ) {
+    console.log(transactionTypeId);
     if (!transactionTypeId) {
       throw new BadRequestException(
         'TransactionTypeId and accounts are required.',
