@@ -3,23 +3,21 @@ import {
   Entity,
   PrimaryGeneratedColumn,
   Column,
-  CreateDateColumn,
-  UpdateDateColumn,
   OneToOne,
   JoinColumn,
 } from 'typeorm';
 
-@Entity('transaction_address')
-export class TransactionAddress {
+@Entity('transaction_contact')
+export class TransactionContact {
   @PrimaryGeneratedColumn()
   id: number;
 
-  @OneToOne(() => Transaction, (transaction) => transaction.address)
+  @OneToOne(() => Transaction, (transaction) => transaction.transactionContact)
   @JoinColumn() // Menambahkan JoinColumn untuk relasi OneToOne
   transaction: Transaction;
 
   @Column('varchar', { length: 255 })
-  recipientName: string;
+  name: string;
 
   @Column('varchar', { length: 255 })
   addressLine1: string;
@@ -38,10 +36,4 @@ export class TransactionAddress {
 
   @Column('varchar', { length: 20 })
   phoneNumber: string;
-
-  @CreateDateColumn()
-  createdAt: Date;
-
-  @UpdateDateColumn()
-  updatedAt: Date;
 }

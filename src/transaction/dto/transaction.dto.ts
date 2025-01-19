@@ -11,14 +11,6 @@ import {
 export class TransactionDTO {
   @IsNumber()
   @IsNotEmpty()
-  originWalletId: number;
-
-  @IsNumber()
-  @IsOptional()
-  destinationWalletId: number;
-
-  @IsNumber()
-  @IsNotEmpty()
   transactionTypeId: number;
 
   @IsNumber()
@@ -27,19 +19,31 @@ export class TransactionDTO {
 
   @IsString()
   @IsOptional()
-  description?: string;
+  note?: string;
 
+  @IsNotEmpty()
   @IsNumber()
-  @IsOptional()
-  storeId?: number;
+  debitAccountId: number;
 
+  @IsNotEmpty()
   @IsNumber()
-  @IsOptional()
-  financialPartyId?: number;
+  creditAccountId: number;
 
   @IsNumber()
   @IsOptional()
   customerId?: number;
+
+  @IsNumber()
+  @IsOptional()
+  debtorId?: number;
+
+  @IsNumber()
+  @IsOptional()
+  creditorId?: number;
+
+  @IsNumber()
+  @IsOptional()
+  storeId?: number;
 
   @IsOptional()
   @IsDate() // Memvalidasi bahwa string tersebut memiliki format ISO8601
@@ -60,7 +64,7 @@ export class TransactionDTO {
   // Details hanya berisi ID produk dan kuantitas
   @IsArray()
   @IsOptional()
-  details?: {
+  orders?: {
     productId: number; // ID produk
     quantity: number; // Jumlah produk
   }[];

@@ -1,5 +1,5 @@
 import { DataSource } from 'typeorm';
-import { TransactionSeeder } from './transaction.seeder';
+import { TransactionTypeSeeder } from './transaction.seeder';
 import { AccountSeeder } from './account.seeder';
 
 export class SeederManager {
@@ -7,8 +7,7 @@ export class SeederManager {
     console.log('🔄 Menjalankan semua seeder...');
 
     // Daftar seeder yang ingin dijalankan
-    // const seeders = [TransactionSeeder, AccountSeeder];
-    const seeders = [TransactionSeeder, AccountSeeder];
+    const seeders = [TransactionTypeSeeder, AccountSeeder];
 
     for (const Seeder of seeders) {
       console.log(`🚀 Menjalankan seeder: ${Seeder.name}`);

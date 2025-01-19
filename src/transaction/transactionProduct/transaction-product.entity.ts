@@ -1,19 +1,12 @@
 import { Transaction } from 'src/transaction/transaction.entity';
-import {
-  Entity,
-  PrimaryGeneratedColumn,
-  Column,
-  ManyToOne,
-  CreateDateColumn,
-  UpdateDateColumn,
-} from 'typeorm';
+import { Entity, PrimaryGeneratedColumn, Column, ManyToOne } from 'typeorm';
 
-@Entity('transaction_details')
-export class TransactionDetail {
+@Entity('transaction_product')
+export class TransactionProduct {
   @PrimaryGeneratedColumn()
   id: number;
 
-  @ManyToOne(() => Transaction, (transaction) => transaction.details)
+  @ManyToOne(() => Transaction, (transaction) => transaction.transactionProduct)
   transaction: Transaction;
 
   // Informasi Produk saat Transaksi
@@ -34,10 +27,4 @@ export class TransactionDetail {
 
   @Column('decimal', { precision: 10, scale: 2 })
   totalPrice: number; // Total setelah diskon
-
-  @CreateDateColumn()
-  createdAt: Date;
-
-  @UpdateDateColumn()
-  updatedAt: Date;
 }
