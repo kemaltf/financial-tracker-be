@@ -4,9 +4,11 @@ import {
   IsEmail,
   IsNotEmpty,
   Length,
+  IsEnum,
 } from 'class-validator';
+import { Role } from '../entity/financial-party.entity';
 
-export class CreateCustomerDto {
+export class FinancialPartyCreateDto {
   @IsString()
   @IsNotEmpty()
   @Length(1, 255)
@@ -45,4 +47,8 @@ export class CreateCustomerDto {
   @IsNotEmpty()
   @Length(1, 20)
   postalCode: string;
+
+  @IsEnum(Role)
+  @IsNotEmpty()
+  role: Role;
 }

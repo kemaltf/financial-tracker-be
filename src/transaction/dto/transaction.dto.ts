@@ -35,6 +35,14 @@ export class TransactionDTO {
 
   @IsNumber()
   @IsOptional()
+  debtorId?: number;
+
+  @IsNumber()
+  @IsOptional()
+  creditorId?: number;
+
+  @IsNumber()
+  @IsOptional()
   storeId?: number;
 
   @IsOptional()
@@ -56,7 +64,7 @@ export class TransactionDTO {
   // Details hanya berisi ID produk dan kuantitas
   @IsArray()
   @IsOptional()
-  details?: {
+  orders?: {
     productId: number; // ID produk
     quantity: number; // Jumlah produk
   }[];

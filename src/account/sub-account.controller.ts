@@ -57,7 +57,7 @@ export class subAccountController {
    * @param accounts List of accounts to filter
    * @returns Available debit and credit accounts
    */
-  @Get('/available/:transactionTypeId')
+  @Get('/options/:transactionTypeId')
   async getAvailableAccounts(
     @Param('transactionTypeId') transactionTypeId: number,
   ) {

@@ -1,7 +1,7 @@
-import { Customer } from 'src/customer/entity/customer.entity';
+import { FinancialParty } from '@app/financial-party/entity/financial-party.entity';
 import { Store } from 'src/store/store.entity';
 import { TransactionContact } from '@app/transaction/transaction-contact/transaction-contact.entity';
-import { TransactionProduct } from '@app/transaction/transactionDetail/transaction-detail.entity';
+import { TransactionProduct } from '@app/transaction/transactionProduct/transaction-product.entity';
 import { TransactionType } from '@app/transaction/transactionType/transaction-type.entity';
 import { User } from 'src/user/user.entity';
 import {
@@ -34,7 +34,7 @@ export class Transaction {
   // NOMINAL TRANSACTION
   @Column({
     type: 'decimal',
-    precision: 12,
+    precision: 15,
     scale: 2,
     transformer: new ColumnNumericTransformer(),
   })
@@ -79,11 +79,11 @@ export class Transaction {
   user: User;
 
   // IF TRANSACTION RELATED TO CUSTOMER
-  @ManyToOne(() => Customer, (customer) => customer.transactions, {
+  @ManyToOne(() => FinancialParty, (customer) => customer.transactions, {
     nullable: true,
   })
   @JoinColumn({ name: 'customer_id' })
-  customer: Customer;
+  customer: FinancialParty;
 
   // IF TRANSACTION RELATED TO STORE
   @ManyToOne(() => Store, (store) => store.transactions)

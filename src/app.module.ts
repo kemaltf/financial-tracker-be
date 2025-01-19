@@ -9,16 +9,15 @@ import { TransactionTypeModule } from './transaction/transactionType/transaction
 import { TransactionModule } from './transaction/transaction.module';
 import { ProductModule } from './product/product.module';
 import { CategoryModule } from './category/category.module';
-import { TransactionDetailModule } from './transaction/transactionDetail/transaction-detail.module';
+import { TransactionProductModule } from './transaction/transactionProduct/transaction-product.module';
 import { TransactionContactModule } from './transaction/transaction-contact/transaction-contact.module';
 import { StoreModule } from './store/store.module';
 import { AccountModule } from './account/account.module';
 import { VariantModule } from './variant/variant.module';
 import { ImageModule } from './image/image.module';
 import { AWSS3Module } from './aws/aws-s3.module';
-import { CustomerModule } from './customer/customer.module';
+import { CustomerModule } from './financial-party/financial-party.module';
 import { DebtsAndReceivablesModule } from './debt-receivable/debts-and-receivables.module';
-import { DebtorModule } from './creditor-debtor/creditor-debtor.module';
 
 @Module({
   imports: [
@@ -31,14 +30,13 @@ import { DebtorModule } from './creditor-debtor/creditor-debtor.module';
     ProductModule,
     StoreModule,
     TransactionContactModule,
-    TransactionDetailModule,
+    TransactionProductModule,
     TransactionModule,
     TransactionTypeModule,
     UserModule,
     VariantModule,
     CustomerModule,
     DebtsAndReceivablesModule,
-    DebtorModule,
     ConfigModule.forRoot({
       envFilePath: '.env.development.local',
       isGlobal: true,

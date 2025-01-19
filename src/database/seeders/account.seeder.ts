@@ -282,6 +282,7 @@ export class AccountSeeder {
         return {
           code: account.code,
           name: account.name,
+          balance: 0,
           account: relatedAccount, // Menambahkan relasi AccountType
           description: account.description,
         };

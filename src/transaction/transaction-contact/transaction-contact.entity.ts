@@ -7,7 +7,7 @@ import {
   JoinColumn,
 } from 'typeorm';
 
-@Entity('transaction-contact')
+@Entity('transaction_contact')
 export class TransactionContact {
   @PrimaryGeneratedColumn()
   id: number;

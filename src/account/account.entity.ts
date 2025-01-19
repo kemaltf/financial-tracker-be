@@ -30,7 +30,7 @@ export class Account {
     type: 'enum',
     enum: BalanceImpactSide,
   })
-  balanceImpact: BalanceImpactSide; // Menentukan sisi mana yang mempengaruhi saldo (DEBIT atau CREDIT)
+  normalBalance: BalanceImpactSide; // Menentukan sisi mana yang mempengaruhi saldo (DEBIT atau CREDIT)
 
   @OneToMany(() => SubAccount, (subAccount) => subAccount.account)
   subAccounts: SubAccount[];

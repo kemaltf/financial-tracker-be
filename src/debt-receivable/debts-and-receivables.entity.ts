@@ -6,18 +6,24 @@ import {
   JoinColumn,
 } from 'typeorm';
 import { Transaction } from '@app/transaction/transaction.entity';
-import { DebtorCreditor } from '@app/creditor-debtor/creditor-debtor.entity';
+import { FinancialParty } from '@app/financial-party/entity/financial-party.entity';
 
 @Entity('debts_and_receivables')
 export class DebtsAndReceivables {
   @PrimaryGeneratedColumn()
   id: number;
 
-  @ManyToOne(() => DebtorCreditor, (debtor) => debtor.debtsAndReceivables, {
+  @ManyToOne(() => FinancialParty, (debtor) => debtor.debtor, {
     nullable: true,
   })
   @JoinColumn({ name: 'debtor_id' })
-  financial_party: DebtorCreditor;
+  debtor: FinancialParty;
+
+  @ManyToOne(() => FinancialParty, (creditor) => creditor.creditor, {
+    nullable: true,
+  })
+  @JoinColumn({ name: 'creditor_id' })
+  creditor: FinancialParty;
 
   @Column({ type: 'date' })
   dueDate: Date;
@@ -25,6 +31,10 @@ export class DebtsAndReceivables {
   @Column({ type: 'enum', enum: ['pending', 'paid'], default: 'pending' })
   status: 'pending' | 'paid';
 
+  @ManyToOne(
+    () => Transaction,
+    (transaction) => transaction.debtsAndReceivables,
+  )
   @JoinColumn({ name: 'transaction_id' })
   transaction: Transaction;
 }
