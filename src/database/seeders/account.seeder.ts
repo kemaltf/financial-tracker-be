@@ -26,23 +26,23 @@ export class AccountSeeder {
     const accounts = [
       {
         type: AccountType.ASSET,
-        balanceImpact: BalanceImpactSide.DEBIT,
+        normalBalance: BalanceImpactSide.DEBIT,
       },
       {
         type: AccountType.LIABILITY,
-        balanceImpact: BalanceImpactSide.CREDIT,
+        normalBalance: BalanceImpactSide.CREDIT,
       },
       {
         type: AccountType.REVENUE,
-        balanceImpact: BalanceImpactSide.CREDIT,
+        normalBalance: BalanceImpactSide.CREDIT,
       },
       {
         type: AccountType.EXPENSE,
-        balanceImpact: BalanceImpactSide.DEBIT,
+        normalBalance: BalanceImpactSide.DEBIT,
       },
       {
         type: AccountType.EQUITY,
-        balanceImpact: BalanceImpactSide.CREDIT,
+        normalBalance: BalanceImpactSide.CREDIT,
       },
     ];
 
@@ -50,7 +50,7 @@ export class AccountSeeder {
     const accountSaved = await accountRepository.save(
       accounts.map((account) => ({
         type: account.type,
-        balanceImpact: account.balanceImpact,
+        normalBalance: account.normalBalance,
       })),
     );
     console.log(accountSaved);
@@ -61,56 +61,56 @@ export class AccountSeeder {
         code: '1-10001',
         name: 'Kas',
         type: AccountType.ASSET,
-        balanceImpact: BalanceImpactSide.DEBIT, // Tambahkan balanceImpact
+        normalBalance: BalanceImpactSide.DEBIT, // Tambahkan normalBalance
         description: 'Uang tunai di tangan',
       },
       {
         code: '1-10002',
         name: 'Rekening Bank',
         type: AccountType.ASSET,
-        balanceImpact: BalanceImpactSide.DEBIT, // Tambahkan balanceImpact
+        normalBalance: BalanceImpactSide.DEBIT, // Tambahkan normalBalance
         description: 'Saldo rekening bank',
       },
       {
         code: '1-102000',
         name: 'Persediaan Barang',
         type: AccountType.ASSET,
-        balanceImpact: BalanceImpactSide.DEBIT, // Tambahkan balanceImpact
+        normalBalance: BalanceImpactSide.DEBIT, // Tambahkan normalBalance
         description: 'Barang siap dijual',
       },
       {
         code: '4-40200',
         name: 'Pendapatan',
         type: AccountType.REVENUE,
-        balanceImpact: BalanceImpactSide.CREDIT, // Tambahkan balanceImpact
+        normalBalance: BalanceImpactSide.CREDIT, // Tambahkan normalBalance
         description: 'Pendapatan dari penjualan produk',
       },
       {
         code: '5-50100',
         name: "Owner's Equity",
         type: AccountType.EQUITY,
-        balanceImpact: BalanceImpactSide.CREDIT, // Tambahkan balanceImpact
+        normalBalance: BalanceImpactSide.CREDIT, // Tambahkan normalBalance
         description: 'Modal pemilik',
       },
       {
         code: '4-30200',
         name: 'Advertising Revenue',
         type: AccountType.REVENUE,
-        balanceImpact: BalanceImpactSide.CREDIT, // Tambahkan balanceImpact
+        normalBalance: BalanceImpactSide.CREDIT, // Tambahkan normalBalance
         description: 'Pendapatan dari iklan',
       },
       {
         code: '1-10100',
         name: 'Piutang Usaha',
         type: AccountType.ASSET,
-        balanceImpact: BalanceImpactSide.DEBIT, // Tambahkan balanceImpact
+        normalBalance: BalanceImpactSide.DEBIT, // Tambahkan normalBalance
         description: 'Piutang usaha dari pelanggan',
       },
       {
         code: '1-10101',
         name: 'Piutang Lain-lain (Other Receivables)',
         type: AccountType.ASSET,
-        balanceImpact: BalanceImpactSide.DEBIT, // Tambahkan balanceImpact
+        normalBalance: BalanceImpactSide.DEBIT, // Tambahkan normalBalance
         description:
           'Piutang yang berasal dari aktivitas non-operasional, seperti pinjaman kepada karyawan atau pihak lain.',
       },
@@ -118,63 +118,63 @@ export class AccountSeeder {
         code: '2-20100',
         name: 'Accounts Payable',
         type: AccountType.LIABILITY,
-        balanceImpact: BalanceImpactSide.CREDIT, // Tambahkan balanceImpact
+        normalBalance: BalanceImpactSide.CREDIT, // Tambahkan normalBalance
         description: 'Hutang usaha',
       },
       {
         code: '5-60100',
         name: 'Biaya Agen Sosial Media',
         type: AccountType.EXPENSE,
-        balanceImpact: BalanceImpactSide.DEBIT, // Tambahkan balanceImpact
+        normalBalance: BalanceImpactSide.DEBIT, // Tambahkan normalBalance
         description: 'Pembayaran kepada agen sosial media',
       },
       {
         code: '5-60200',
         name: 'Biaya Iklan',
         type: AccountType.EXPENSE,
-        balanceImpact: BalanceImpactSide.DEBIT, // Tambahkan balanceImpact
+        normalBalance: BalanceImpactSide.DEBIT, // Tambahkan normalBalance
         description: 'Biaya iklan dan pemasaran',
       },
       {
         code: '5-60300',
         name: 'Barang Pelengkap',
         type: AccountType.EXPENSE,
-        balanceImpact: BalanceImpactSide.DEBIT, // Tambahkan balanceImpact
+        normalBalance: BalanceImpactSide.DEBIT, // Tambahkan normalBalance
         description: 'Pembelian barang pelengkap seperti stiker',
       },
       {
         code: '5-60400',
         name: 'Barang Kantor',
         type: AccountType.EXPENSE,
-        balanceImpact: BalanceImpactSide.DEBIT, // Tambahkan balanceImpact
+        normalBalance: BalanceImpactSide.DEBIT, // Tambahkan normalBalance
         description: 'Pembelian barang kantor seperti printer',
       },
       {
         code: '5-60500',
         name: 'Biaya Transportasi',
         type: AccountType.EXPENSE,
-        balanceImpact: BalanceImpactSide.DEBIT, // Tambahkan balanceImpact
+        normalBalance: BalanceImpactSide.DEBIT, // Tambahkan normalBalance
         description: 'Biaya transportasi untuk operasional usaha',
       },
       {
         code: '4-30300',
         name: 'Affiliate Revenue',
         type: AccountType.REVENUE,
-        balanceImpact: BalanceImpactSide.CREDIT,
+        normalBalance: BalanceImpactSide.CREDIT,
         description: 'Pendapatan dari program afiliasi atau referensi.',
       },
       {
         code: '4-30400',
         name: 'Subscription Revenue',
         type: AccountType.REVENUE,
-        balanceImpact: BalanceImpactSide.CREDIT,
+        normalBalance: BalanceImpactSide.CREDIT,
         description: 'Pendapatan dari layanan berbasis langganan.',
       },
       {
         code: '4-30500',
         name: 'Digital Product Sales',
         type: AccountType.REVENUE,
-        balanceImpact: BalanceImpactSide.CREDIT,
+        normalBalance: BalanceImpactSide.CREDIT,
         description:
           'Pendapatan dari penjualan produk digital seperti e-book, kursus online, atau template.',
       },
@@ -183,21 +183,21 @@ export class AccountSeeder {
         code: '4-30700',
         name: 'Marketplace Commission',
         type: AccountType.REVENUE,
-        balanceImpact: BalanceImpactSide.CREDIT,
+        normalBalance: BalanceImpactSide.CREDIT,
         description: 'Komisi dari penjualan produk di marketplace online.',
       },
       {
         code: '4-30800',
         name: 'Dropshipping Revenue',
         type: AccountType.REVENUE,
-        balanceImpact: BalanceImpactSide.CREDIT,
+        normalBalance: BalanceImpactSide.CREDIT,
         description: 'Pendapatan dari model bisnis dropshipping.',
       },
       {
         code: '4-30900',
         name: 'Freemium Upsell Revenue',
         type: AccountType.REVENUE,
-        balanceImpact: BalanceImpactSide.CREDIT,
+        normalBalance: BalanceImpactSide.CREDIT,
         description:
           'Pendapatan dari pelanggan yang meningkatkan layanan dari gratis ke berbayar.',
       },
@@ -205,7 +205,7 @@ export class AccountSeeder {
         code: '4-31000',
         name: 'Sponsored Content Revenue',
         type: AccountType.REVENUE,
-        balanceImpact: BalanceImpactSide.CREDIT,
+        normalBalance: BalanceImpactSide.CREDIT,
         description:
           'Pendapatan dari konten bersponsor seperti posting blog, video, atau ulasan.',
       },
@@ -213,7 +213,7 @@ export class AccountSeeder {
         code: '4-31100',
         name: 'Event Ticket Sales',
         type: AccountType.REVENUE,
-        balanceImpact: BalanceImpactSide.CREDIT,
+        normalBalance: BalanceImpactSide.CREDIT,
         description:
           'Pendapatan dari penjualan tiket acara online seperti webinar atau pelatihan.',
       },
@@ -221,7 +221,7 @@ export class AccountSeeder {
         code: '4-31200',
         name: 'Freelance Service Revenue',
         type: AccountType.REVENUE,
-        balanceImpact: BalanceImpactSide.CREDIT,
+        normalBalance: BalanceImpactSide.CREDIT,
         description:
           'Pendapatan dari layanan freelance seperti desain grafis, penulisan, atau konsultasi.',
       },
@@ -229,7 +229,7 @@ export class AccountSeeder {
         code: '4-31300',
         name: 'White Labeling Revenue',
         type: AccountType.REVENUE,
-        balanceImpact: BalanceImpactSide.CREDIT,
+        normalBalance: BalanceImpactSide.CREDIT,
         description:
           'Pendapatan dari produk atau layanan yang dijual dengan merek pelanggan.',
       },
@@ -237,7 +237,7 @@ export class AccountSeeder {
         code: '4-31400',
         name: 'Platform Usage Fees',
         type: AccountType.REVENUE,
-        balanceImpact: BalanceImpactSide.CREDIT,
+        normalBalance: BalanceImpactSide.CREDIT,
         description:
           'Pendapatan dari biaya penggunaan platform, seperti layanan SaaS.',
       },
@@ -245,14 +245,14 @@ export class AccountSeeder {
         code: '4-31500',
         name: 'Course Enrollment Revenue',
         type: AccountType.REVENUE,
-        balanceImpact: BalanceImpactSide.CREDIT,
+        normalBalance: BalanceImpactSide.CREDIT,
         description: 'Pendapatan dari pendaftaran kursus online.',
       },
       {
         code: '4-31600',
         name: 'Reseller Revenue',
         type: AccountType.REVENUE,
-        balanceImpact: BalanceImpactSide.CREDIT,
+        normalBalance: BalanceImpactSide.CREDIT,
         description:
           'Pendapatan dari penjualan kembali produk dengan margin keuntungan.',
       },
@@ -260,7 +260,7 @@ export class AccountSeeder {
         code: '4-31700',
         name: 'Consultation Fees',
         type: AccountType.REVENUE,
-        balanceImpact: BalanceImpactSide.CREDIT,
+        normalBalance: BalanceImpactSide.CREDIT,
         description: 'Pendapatan dari layanan konsultasi bisnis atau teknis.',
       },
     ];

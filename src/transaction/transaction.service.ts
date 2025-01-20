@@ -223,7 +223,7 @@ export class TransactionService {
     if (transactionTypeName === 'Hutang' || transactionTypeName === 'Piutang') {
       if ([creditorId, debtorId, dueDate].some((value) => !value)) {
         throw new NotFoundException(
-          `Customer ID, Creditor ID, Debtor ID, and Due Date must be provided for ${transactionTypeName} transaction.`,
+          `Creditor ID, Debtor ID, and Due Date must be provided for ${transactionTypeName} transaction.`,
         );
       }
     }
@@ -288,18 +288,22 @@ export class TransactionService {
     debitAccount: SubAccount,
     creditAccount: SubAccount,
   ) {
+    console.log('log', creditAccount);
     // Update the balance for the debit account
     const debitAccountBalanceImpact =
       debitAccount.account.normalBalance === BalanceImpactSide.DEBIT
         ? amount
         : -amount;
     await this.updateAccountBalance(debitAccount, debitAccountBalanceImpact);
+    console.log('debitAccountBalanceImpact', debitAccountBalanceImpact);
 
     // Update the balance for the credit account
     const creditAccountBalanceImpact =
       creditAccount.account.normalBalance === BalanceImpactSide.DEBIT
         ? -amount
         : amount;
+
+    console.log('creditAccountBalanceImpact', creditAccountBalanceImpact);
     await this.updateAccountBalance(creditAccount, creditAccountBalanceImpact);
   }
 
@@ -322,20 +326,6 @@ export class TransactionService {
     }
     return transactionType;
   }
-
-  /**
-   * helper to check whether is debit transaction
-   */
-  // private isDebitTransaction(transactionTypeName: string): boolean {
-  //   const debitTransactionTypes = [
-  //     'Pengeluaran',
-  //     'Pengeluaran Piutang',
-  //     'Tarik Modal',
-  //     'Transfer',
-  //     'Piutang',
-  //   ];
-  //   return debitTransactionTypes.includes(transactionTypeName);
-  // }
 
   /**
    * Create transaction address
@@ -407,302 +397,6 @@ export class TransactionService {
       await this.transactionProductRepository.save(transactionDetail);
     }
   }
-
-  // private async processAccountingNWallet(
-  //   transaction: Transaction,
-  //   transactionTypeName: string,
-  //   originWallet: Wallet,
-  //   destinationWallet: Wallet,
-  //   amount: number,
-  //   userId: string,
-  //   dueDate?: Date,
-  //   financialPartyId?: number,
-  // ): Promise<void> {
-  //   // Get account id
-  //   const cashAccount = await this.getAccountByCode('101');
-  //   const incomeAccount = await this.getAccountByCode('401');
-  //   const expenseAccount = await this.getAccountByCode('501');
-  //   const debtAccount = await this.getAccountByCode('201');
-  //   const receivableAccount = await this.getAccountByCode('301');
-  //   const equityAccount = await this.getAccountByCode('601');
-
-  //   // const entries: AccountingEntry[] = [];
-  //   const oldWalletState = { balance: originWallet.balance };
-  //   console.log('tess', typeof originWallet.balance);
-  //   console.log('tess 2', typeof amount);
-
-  //   // Logic accounting
-  //   switch (transactionTypeName) {
-  //     case 'Pemasukan':
-  //       originWallet.balance += amount;
-  //       // entries.push(
-  //       //   this.createAccountingEntry(
-  //       //     transaction,
-  //       //     cashAccount,
-  //       //     'DEBIT',
-  //       //     amount,
-  //       //     `Kas bertambah dari pemasukan untuk transaksi #${transaction.id}`,
-  //       //   ),
-  //       //   this.createAccountingEntry(
-  //       //     transaction,
-  //       //     incomeAccount,
-  //       //     'CREDIT',
-  //       //     amount,
-  //       //     `Pendapatan bertambah untuk transaksi #${transaction.id}`,
-  //       //   ),
-  //       // );
-  //       break;
-
-  //     case 'Pengeluaran':
-  //       // await this.checkWalletBalance(originWallet, amount);
-  //       originWallet.balance -= amount;
-  //       // entries.push(
-  //       //   this.createAccountingEntry(
-  //       //     transaction,
-  //       //     expenseAccount,
-  //       //     'DEBIT',
-  //       //     amount,
-  //       //     `Beban bertambah untuk transaksi #${transaction.id}`,
-  //       //   ),
-  //       //   this.createAccountingEntry(
-  //       //     transaction,
-  //       //     cashAccount,
-  //       //     'CREDIT',
-  //       //     amount,
-  //       //     `Kas berkurang untuk transaksi #${transaction.id}`,
-  //       //   ),
-  //       // );
-  //       break;
-
-  //     case 'Hutang':
-  //       originWallet.balance += amount;
-
-  //       if (!financialPartyId) {
-  //         throw new NotFoundException(
-  //           `Debtor with ID ${financialPartyId} not found`,
-  //         );
-  //       }
-
-  //       // Update DebtsAndReceivables table for debt creation
-  //       await this.createDebtEntry(
-  //         transaction,
-  //         amount,
-  //         dueDate,
-  //         financialPartyId,
-  //       );
-  //       // entries.push(
-  //       //   this.createAccountingEntry(
-  //       //     transaction,
-  //       //     debtAccount,
-  //       //     'CREDIT',
-  //       //     amount,
-  //       //     `Hutang bertambah untuk transaksi #${transaction.id}`,
-  //       //   ),
-  //       //   this.createAccountingEntry(
-  //       //     transaction,
-  //       //     cashAccount,
-  //       //     'DEBIT',
-  //       //     amount,
-  //       //     `Kas bertambah dari pencatatan hutang untuk transaksi #${transaction.id}`,
-  //       //   ),
-  //       // );
-  //       break;
-
-  //     case 'Piutang':
-  //       // await this.checkWalletBalance(originWallet, amount);
-  //       originWallet.balance -= amount;
-
-  //       if (!financialPartyId) {
-  //         throw new NotFoundException(
-  //           `Creditor with ID ${financialPartyId} not found`,
-  //         );
-  //       }
-
-  //       // Update DebtsAndReceivables table for receivable creation
-  //       await this.createReceivableEntry(
-  //         transaction,
-  //         amount,
-  //         dueDate,
-  //         financialPartyId,
-  //       );
-
-  //       // entries.push(
-  //       //   this.createAccountingEntry(
-  //       //     transaction,
-  //       //     receivableAccount,
-  //       //     'DEBIT',
-  //       //     amount,
-  //       //     `Piutang bertambah untuk transaksi #${transaction.id}`,
-  //       //   ),
-  //       //   this.createAccountingEntry(
-  //       //     transaction,
-  //       //     incomeAccount,
-  //       //     'CREDIT',
-  //       //     amount,
-  //       //     `Pendapatan bertambah untuk transaksi #${transaction.id}`,
-  //       //   ),
-  //       // );
-  //       break;
-
-  //     case 'Tanam Modal':
-  //       originWallet.balance += amount;
-  //       // entries.push(
-  //       //   this.createAccountingEntry(
-  //       //     transaction,
-  //       //     cashAccount,
-  //       //     'DEBIT',
-  //       //     amount,
-  //       //     `Kas bertambah dari penambahan modal untuk transaksi #${transaction.id}`,
-  //       //   ),
-  //       //   this.createAccountingEntry(
-  //       //     transaction,
-  //       //     equityAccount,
-  //       //     'CREDIT',
-  //       //     amount,
-  //       //     `Ekuitas modal bertambah untuk transaksi #${transaction.id}`,
-  //       //   ),
-  //       // );
-  //       break;
-
-  //     case 'Tarik Modal':
-  //       // await this.checkWalletBalance(originWallet, amount);
-  //       originWallet.balance -= amount;
-  //       // entries.push(
-  //       //   this.createAccountingEntry(
-  //       //     transaction,
-  //       //     equityAccount,
-  //       //     'DEBIT',
-  //       //     amount,
-  //       //     `Ekuitas modal berkurang untuk transaksi #${transaction.id}`,
-  //       //   ),
-  //       //   this.createAccountingEntry(
-  //       //     transaction,
-  //       //     cashAccount,
-  //       //     'CREDIT',
-  //       //     amount,
-  //       //     `Kas berkurang untuk transaksi #${transaction.id}`,
-  //       //   ),
-  //       // );
-  //       break;
-
-  //     case 'Transfer':
-  //       await this.handleTransfer(
-  //         transaction,
-  //         originWallet,
-  //         destinationWallet,
-  //         amount,
-  //       );
-  //       break;
-
-  //     default:
-  //       throw new Error(`Unsupported transaction type: ${transactionTypeName}`);
-  //   }
-
-  //   await this.walletRepository.save(originWallet);
-  //   const newWalletState = { balance: originWallet.balance };
-  //   await this.walletLog.save(
-  //     this.walletLog.create({
-  //       action: 'Update',
-  //       oldValue: oldWalletState,
-  //       newValue: newWalletState,
-  //       wallet: originWallet,
-  //       performed_by: userId,
-  //     }),
-  //   );
-  // }
-
-  // private async handleTransfer(
-  //   transaction: Transaction,
-  //   originWallet: Wallet,
-  //   destinationWallet: Wallet,
-  //   amount: number,
-  // ): Promise<void> {
-  //   if (!destinationWallet) {
-  //     throw new NotFoundException('Destination wallet not found');
-  //   }
-
-  //   // Check if the source wallet has enough balance for the transfer
-  //   // if (originWallet.balance < amount) {
-  //   //   throw new BadRequestException('Insufficient balance for the transfer');
-  //   // }
-
-  //   // Deduct the amount from the source wallet
-  //   originWallet.balance -= amount;
-  //   await this.walletRepository.save(originWallet);
-
-  //   // Add the amount to the destination wallet
-  //   destinationWallet.balance += amount;
-  //   await this.walletRepository.save(destinationWallet);
-
-  //   // Create accounting entries for the transfer
-  //   const sourceAccount = await this.getAccountByCode('101'); // Example account code for source wallet
-  //   const destinationAccount = await this.getAccountByCode('102'); // Example account code for destination wallet
-
-  //   // const entries: AccountingEntry[] = [
-  //   //   this.createAccountingEntry(
-  //   //     transaction,
-  //   //     sourceAccount,
-  //   //     'CREDIT',
-  //   //     amount,
-  //   //     `Transferred to wallet ${destinationWallet.id} for transaction #${transaction.id}`,
-  //   //   ),
-  //   //   this.createAccountingEntry(
-  //   //     transaction,
-  //   //     destinationAccount,
-  //   //     'DEBIT',
-  //   //     amount,
-  //   //     `Transferred from wallet ${originWallet.id} for transaction #${transaction.id}`,
-  //   //   ),
-  //   // ];
-
-  //   // Optionally, log the transfer action in a transaction log
-  //   const oldWalletState = { balance: originWallet.balance };
-  //   const newWalletState = { balance: destinationWallet.balance };
-  //   await this.walletLog.save(
-  //     this.walletLog.create({
-  //       action: 'Transfer',
-  //       oldValue: oldWalletState,
-  //       newValue: newWalletState,
-  //       wallet: originWallet,
-  //     }),
-  //   );
-  // }
-
-  // Helper function to create debt entry
-  // private async createDebtEntry(
-  //   transaction: Transaction,
-  //   amount: number,
-  //   dueDate: Date,
-  //   debtorId: number,
-  // ): Promise<void> {
-  //   const debtEntry = this.debtsAndReceivablesRepository.create({
-  //     amount,
-  //     transaction,
-  //     type: 'debt',
-  //     dueDate,
-  //     status: 'pending',
-  //     financial_party: { id: debtorId },
-  //   });
-  //   await this.debtsAndReceivablesRepository.save(debtEntry);
-  // }
-
-  // Helper function to create receivable entry
-  // private async createReceivableEntry(
-  //   transaction: Transaction,
-  //   amount: number,
-  //   dueDate: Date,
-  //   creditorId: number,
-  // ): Promise<void> {
-  //   const receivableEntry = this.debtsAndReceivablesRepository.create({
-  //     amount,
-  //     transaction,
-  //     type: 'receivable',
-  //     dueDate,
-  //     status: 'pending',
-  //     financial_party: { id: creditorId },
-  //   });
-  //   await this.debtsAndReceivablesRepository.save(receivableEntry);
-  // }
 
   async getFinancialSummary() {
     const totalIncome = await this.transactionRepository.sum('amount', {

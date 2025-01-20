@@ -23,7 +23,7 @@ export class FinancialParty {
   @Column('varchar', { length: 255 })
   name: string;
 
-  @Column('varchar', { length: 255, unique: true })
+  @Column('varchar', { length: 255 })
   email: string;
 
   @Column('varchar', { length: 20, nullable: true })
