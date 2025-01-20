@@ -1,5 +1,11 @@
 import { Transaction } from 'src/transaction/transaction.entity';
-import { Entity, PrimaryGeneratedColumn, Column, ManyToOne } from 'typeorm';
+import {
+  Entity,
+  PrimaryGeneratedColumn,
+  Column,
+  ManyToOne,
+  JoinColumn,
+} from 'typeorm';
 
 @Entity('transaction_order')
 export class TransactionOrder {
@@ -7,6 +13,7 @@ export class TransactionOrder {
   id: number;
 
   @ManyToOne(() => Transaction, (transaction) => transaction.transactionProduct)
+  @JoinColumn({ name: 'transaction_id' })
   transaction: Transaction;
 
   // Informasi Produk saat Transaksi

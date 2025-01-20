@@ -60,11 +60,12 @@ export class Transaction {
   transactionContact: TransactionContact;
 
   // IF TRANSACTION RELATED TO DEBT OR RECEIVABLE
-  @OneToMany(
+  @ManyToOne(
     () => DebtsAndReceivables,
     (debtsAndReceivables) => debtsAndReceivables.transaction,
   )
-  debtsAndReceivables: DebtsAndReceivables[];
+  @JoinColumn({ name: 'debs_and_receivables_id' }) // Kolom foreign key untuk
+  debtsAndReceivables: DebtsAndReceivables;
 
   // IF TRANSACTION RELATED TO PRODUCT
   @OneToMany(

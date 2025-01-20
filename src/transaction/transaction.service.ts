@@ -306,11 +306,11 @@ export class TransactionService {
       transactionType.name === 'Piutang'
     ) {
       const debtsAndReceivables = this.debtsAndReceivablesRepository.create({
-        transaction,
         dueDate,
         status: 'pending',
         creditor: { id: creditor.id },
         debtor: { id: debtor.id },
+        transaction: [transaction],
       });
       await this.debtsAndReceivablesRepository.save(debtsAndReceivables);
     }
@@ -377,11 +377,11 @@ export class TransactionService {
         await this.debtsAndReceivablesRepository.save(existingDebtReceivable);
       } else {
         const newDebtReceivable = this.debtsAndReceivablesRepository.create({
-          transaction: existingTransaction,
           dueDate,
           status: 'pending',
           creditor: { id: creditor?.id },
           debtor: { id: debtor?.id },
+          transaction: [existingTransaction],
         });
         await this.debtsAndReceivablesRepository.save(newDebtReceivable);
       }
@@ -593,6 +593,7 @@ export class TransactionService {
   ): Promise<void> {
     const transactionAddress = this.transactionContactRepository.create({
       ...address,
+      transaction: { id: transaction.id },
     });
 
     await this.transactionContactRepository.save(transactionAddress);

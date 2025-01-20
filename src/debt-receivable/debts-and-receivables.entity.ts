@@ -4,6 +4,7 @@ import {
   PrimaryGeneratedColumn,
   ManyToOne,
   JoinColumn,
+  OneToMany,
 } from 'typeorm';
 import { Transaction } from '@app/transaction/transaction.entity';
 import { FinancialParty } from '@app/financial-party/entity/financial-party.entity';
@@ -31,10 +32,9 @@ export class DebtsAndReceivables {
   @Column({ type: 'enum', enum: ['pending', 'paid'], default: 'pending' })
   status: 'pending' | 'paid';
 
-  @ManyToOne(
+  @OneToMany(
     () => Transaction,
     (transaction) => transaction.debtsAndReceivables,
   )
-  @JoinColumn({ name: 'transaction_id' })
-  transaction: Transaction;
+  transaction: Transaction[];
 }
