@@ -167,8 +167,9 @@ export class TransactionService {
     await this.validateAccountBalance(debitAccount, amount, 'debit');
     await this.validateAccountBalance(creditAccount, amount, 'credit');
 
+    console.log('===>existingTransaction.amount', existingTransaction.amount);
     // reset the balance for the existing transaction
-    await this.updateSubAccountBalance(
+    const { creditUpdated, debitUpdated } = await this.updateSubAccountBalance(
       -existingTransaction.amount,
       existingTransaction.debitAccount,
       existingTransaction.creditAccount,
@@ -199,8 +200,8 @@ export class TransactionService {
       amount,
       store,
       customer,
-      creditAccount,
-      debitAccount,
+      creditUpdated,
+      debitUpdated,
       note,
       address,
       orders,
@@ -344,6 +345,7 @@ export class TransactionService {
       creditAccount: { id: creditAccount.id },
     });
 
+    console.log('new updated', amount, debitAccount, creditAccount);
     // 12. Update balances
     await this.updateSubAccountBalance(amount, debitAccount, creditAccount);
 
@@ -538,12 +540,18 @@ export class TransactionService {
     debitAccount: SubAccount,
     creditAccount: SubAccount,
   ) {
+    console.log('amount', amount);
+    console.log('debitAccount', debitAccount);
     // Update the balance for the debit account
     const debitAccountBalanceImpact =
       debitAccount.account.normalBalance === BalanceImpactSide.DEBIT
         ? amount
         : -amount;
-    await this.updateAccountBalance(debitAccount, debitAccountBalanceImpact);
+    console.log('debitAccountBalanceImpact', debitAccountBalanceImpact);
+    const debitUpdated = await this.updateAccountBalance(
+      debitAccount,
+      debitAccountBalanceImpact,
+    );
 
     // Update the balance for the credit account
     const creditAccountBalanceImpact =
@@ -551,15 +559,21 @@ export class TransactionService {
         ? -amount
         : amount;
 
-    await this.updateAccountBalance(creditAccount, creditAccountBalanceImpact);
+    const creditUpdated = await this.updateAccountBalance(
+      creditAccount,
+      creditAccountBalanceImpact,
+    );
+
+    return { debitUpdated, creditUpdated };
   }
 
   async updateAccountBalance(subAccount: SubAccount, balanceImpact: number) {
     // Fetch the current balance of the subAccount
     subAccount.balance += balanceImpact; // Adjust the balance
-
+    console.log('subAccount now', subAccount);
     // Save the updated balance back to the database
     await this.subAccountRepository.save(subAccount);
+    return subAccount;
   }
 
   /**
