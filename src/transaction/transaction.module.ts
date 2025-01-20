@@ -6,7 +6,7 @@ import { TransactionController } from './transaction.controller';
 import { TransactionType } from './transactionType/transaction-type.entity';
 import { SubAccount } from '@app/account/sub-account.entity';
 import { TransactionContact } from './transaction-contact/transaction-contact.entity';
-import { TransactionProduct } from './transactionProduct/transaction-product.entity';
+import { TransactionOrder } from './transactionProduct/transaction-product.entity';
 import { Product } from '@app/product/entity/product.entity';
 import { Store } from '@app/store/store.entity';
 import { FinancialParty } from '@app/financial-party/entity/financial-party.entity';
@@ -19,7 +19,7 @@ import { DebtsAndReceivables } from '@app/debt-receivable/debts-and-receivables.
       TransactionType,
       SubAccount,
       TransactionContact,
-      TransactionProduct,
+      TransactionOrder,
       Product,
       Store,
       FinancialParty,

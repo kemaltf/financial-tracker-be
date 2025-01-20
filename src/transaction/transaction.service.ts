@@ -6,11 +6,11 @@ import {
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Transaction } from 'src/transaction/transaction.entity';
-import { TransactionDTO } from './dto/transaction.dto';
+import { AddressDTO, OrderDTO, TransactionDTO } from './dto/transaction.dto';
 import { TransactionType } from './transactionType/transaction-type.entity';
 import { SubAccount } from '@app/account/sub-account.entity';
 import { TransactionContact } from './transaction-contact/transaction-contact.entity';
-import { TransactionProduct } from './transactionProduct/transaction-product.entity';
+import { TransactionOrder } from './transactionProduct/transaction-product.entity';
 import { Product } from '@app/product/entity/product.entity';
 import { Store } from '@app/store/store.entity';
 import {
@@ -40,8 +40,8 @@ export class TransactionService {
     private readonly debtsAndReceivablesRepository: Repository<DebtsAndReceivables>,
     @InjectRepository(TransactionContact)
     private transactionContactRepository: Repository<TransactionContact>,
-    @InjectRepository(TransactionProduct)
-    private transactionProductRepository: Repository<TransactionProduct>,
+    @InjectRepository(TransactionOrder)
+    private transactionOrderRepository: Repository<TransactionOrder>,
     @InjectRepository(Product)
     private productRepository: Repository<Product>,
   ) {}
@@ -49,9 +49,6 @@ export class TransactionService {
   /**
    *
    * === Core logic for creating transactions ===
-   * User akan menentukan wallet, tipe transaksi, detail transaksi, toko transaksi
-   * Difungsi ini akan mengupdate saldo wallet, transaction, accountant table
-   * Proses logikanya di bagian ini
    *
    */
   @HandleErrors()
@@ -74,28 +71,171 @@ export class TransactionService {
       dueDate,
     } = transactionDTO;
 
-    // 1. Validate transaction type
+    // VALIDATE TRANSACTION DATA
+    const {
+      transactionType,
+      store,
+      customer,
+      creditor,
+      debtor,
+      creditAccount,
+      debitAccount,
+    } = await this.validateTransactionData(
+      transactionTypeId,
+      storeId,
+      customerId,
+      creditAccountId,
+      debitAccountId,
+      creditorId,
+      debtorId,
+      dueDate,
+    );
+
+    await this.validateAccountBalance(debitAccount, amount, 'debit');
+    await this.validateAccountBalance(creditAccount, amount, 'credit');
+
+    // CREATE TRANSACTION
+    const transaction = await this.createTransactionEntity(
+      userId,
+      transactionType,
+      amount,
+      store,
+      customer,
+      creditAccount,
+      debitAccount,
+      note,
+      address,
+      orders,
+      creditor,
+      debtor,
+      dueDate,
+    );
+
+    return transaction;
+  }
+
+  @HandleErrors()
+  async updateTransaction(
+    transactionId: number,
+    userId: string,
+    transactionDTO: TransactionDTO,
+  ) {
+    const existingTransaction = await this.findTransactionById(transactionId);
+    console.log('existingTransaction', existingTransaction);
+    if (!existingTransaction) {
+      throw new NotFoundException(
+        `Transaction with ID ${transactionId} not found.`,
+      );
+    }
+
+    const {
+      transactionTypeId, // need to be validated
+      amount,
+      storeId, // need to be validated
+      customerId, // need to be validated
+      creditAccountId, // need to be validated
+      debitAccountId, // need to be validated
+      note,
+      address,
+      orders,
+      creditorId,
+      debtorId,
+      dueDate,
+    } = transactionDTO;
+    console.log('transactionDTO', transactionDTO);
+
+    // VALIDATE TRANSACTION DATA
+    const {
+      transactionType,
+      store,
+      customer,
+      creditor,
+      debtor,
+      creditAccount,
+      debitAccount,
+    } = await this.validateTransactionData(
+      transactionTypeId,
+      storeId,
+      customerId,
+      creditAccountId,
+      debitAccountId,
+      creditorId,
+      debtorId,
+      dueDate,
+    );
+
+    await this.validateAccountBalance(debitAccount, amount, 'debit');
+    await this.validateAccountBalance(creditAccount, amount, 'credit');
+
+    // reset the balance for the existing transaction
+    await this.updateSubAccountBalance(
+      -existingTransaction.amount,
+      existingTransaction.debitAccount,
+      existingTransaction.creditAccount,
+    );
+
+    // 11. Update transaction fields
+    // existingTransaction.transactionType = transactionType;
+    // existingTransaction.amount = amount;
+    // existingTransaction.note = note;
+    // existingTransaction.store = store ? store : null;
+    // existingTransaction.customer = customer ? customer : null;
+    // const user = await this.userRepository.findOne({ where: { id: userId } });
+    // if (!user) {
+    //   throw new NotFoundException(`User with ID ${userId} not found.`);
+    // }
+    // existingTransaction.user = user;
+    // existingTransaction.debitAccount = debitAccount;
+    // existingTransaction.creditAccount = creditAccount;
+
+    // console.log(transaction);
+    // return transaction;
+
+    return await this.updateTransactionEntity(
+      existingTransaction,
+      transactionId,
+      userId,
+      transactionType,
+      amount,
+      store,
+      customer,
+      creditAccount,
+      debitAccount,
+      note,
+      address,
+      orders,
+      creditor,
+      debtor,
+      dueDate,
+    );
+  }
+
+  private async validateTransactionData(
+    transactionTypeId: number,
+    storeId: number,
+    customerId: number,
+    creditAccountId: number,
+    debitAccountId: number,
+    creditorId: number,
+    debtorId: number,
+    dueDate: Date,
+  ) {
+    // 1. Validate transaction type exist in the database
     const transactionType =
       await this.validateTransactionType(transactionTypeId);
 
-    // 2. Validate Store
+    // 2. Validate Store exist in the database
     const store = storeId ? await this.validateStore(storeId) : null;
-    // 3. Validate customer
     const customer = customerId
       ? await this.validateFinancialParty(customerId, Role.customer)
       : null;
-
-    // 4. Validate creditor
     const creditor = creditorId
       ? await this.validateFinancialParty(creditorId, Role.creditor)
       : null;
-
-    // 5. Validate debtor
     const debtor = debtorId
       ? await this.validateFinancialParty(debtorId, Role.debtor)
       : null;
 
-    // 6. Validate debt and receivable
     this.validateDebtAndReceivable(
       transactionType.name,
       creditor?.id,
@@ -103,7 +243,6 @@ export class TransactionService {
       dueDate,
     );
 
-    // 6. Validate account
     const creditAccount = await this.validateaccount(creditAccountId);
     const debitAccount = await this.validateaccount(debitAccountId);
 
@@ -113,19 +252,38 @@ export class TransactionService {
       );
     }
 
-    // 8. Validasi saldo akun debit dan kredit agar tidak negatif
-    await this.validateAccountBalance(debitAccount, amount, 'debit'); // Validasi untuk akun debit
-    await this.validateAccountBalance(creditAccount, amount, 'credit'); // Validasi untuk akun kredit
+    return {
+      transactionType,
+      store,
+      customer,
+      creditor,
+      debtor,
+      creditAccount,
+      debitAccount,
+    };
+  }
 
-    // 5. Create a transaction
+  private async createTransactionEntity(
+    userId: string,
+    transactionType: TransactionType,
+    amount: number,
+    store: Store,
+    customer: FinancialParty,
+    creditAccount: SubAccount,
+    debitAccount: SubAccount,
+    note: string,
+    address: AddressDTO,
+    orders: OrderDTO[],
+    creditor: FinancialParty,
+    debtor: FinancialParty,
+    dueDate: Date,
+  ): Promise<Transaction> {
     const transaction = this.transactionRepository.create({
       transactionType: { id: transactionType.id },
       amount,
       note,
       store: { id: store?.id },
-      customer: {
-        id: customer?.id,
-      },
+      customer: { id: customer?.id },
       user: { id: userId },
       debitAccount: { id: debitAccount.id },
       creditAccount: { id: creditAccount.id },
@@ -136,15 +294,12 @@ export class TransactionService {
       debitAccount,
       creditAccount,
     );
+
     await this.transactionRepository.save(transaction);
 
-    // 7. Save address if exist
     if (address) await this.createTransactionAddress(transaction, address);
-
-    // 8. Save orders transaction if exist
     if (orders?.length) await this.createTransactionOrders(transaction, orders);
 
-    // 9. Save debt and receivable if exist
     if (
       transactionType.name === 'Hutang' ||
       transactionType.name === 'Piutang'
@@ -160,6 +315,77 @@ export class TransactionService {
     }
 
     return transaction;
+  }
+  private async updateTransactionEntity(
+    existingTransaction: Transaction,
+    transactionId: number,
+    userId: string,
+    transactionType: TransactionType,
+    amount: number,
+    store: Store,
+    customer: FinancialParty,
+    creditAccount: SubAccount,
+    debitAccount: SubAccount,
+    note: string,
+    address: AddressDTO,
+    orders: OrderDTO[],
+    creditor: FinancialParty,
+    debtor: FinancialParty,
+    dueDate: Date,
+  ): Promise<Transaction> {
+    await this.transactionRepository.update(transactionId, {
+      transactionType: { id: transactionType.id },
+      amount,
+      note,
+      store: { id: store?.id },
+      customer: { id: customer?.id },
+      user: { id: userId },
+      debitAccount: { id: debitAccount.id },
+      creditAccount: { id: creditAccount.id },
+    });
+
+    // 12. Update balances
+    await this.updateSubAccountBalance(amount, debitAccount, creditAccount);
+
+    // 14. Update address if exist
+    if (address) {
+      await this.updateTransactionAddress(existingTransaction, address);
+    }
+
+    // 15. Update orders if exist
+    if (orders?.length) {
+      await this.updateTransactionOrders(existingTransaction, orders);
+    }
+
+    // 16. Update debt and receivable if applicable
+    if (
+      transactionType.name === 'Hutang' ||
+      transactionType.name === 'Piutang'
+    ) {
+      const existingDebtReceivable =
+        await this.debtsAndReceivablesRepository.findOne({
+          where: { transaction: { id: transactionId } },
+        });
+
+      if (existingDebtReceivable) {
+        existingDebtReceivable.dueDate = dueDate;
+        existingDebtReceivable.creditor = creditor ? creditor : null;
+        existingDebtReceivable.debtor = debtor ? debtor : null;
+
+        await this.debtsAndReceivablesRepository.save(existingDebtReceivable);
+      } else {
+        const newDebtReceivable = this.debtsAndReceivablesRepository.create({
+          transaction: existingTransaction,
+          dueDate,
+          status: 'pending',
+          creditor: { id: creditor?.id },
+          debtor: { id: debtor?.id },
+        });
+        await this.debtsAndReceivablesRepository.save(newDebtReceivable);
+      }
+    }
+
+    return await this.findTransactionById(transactionId);
   }
 
   private async validateStore(storeId: number) {
@@ -215,7 +441,7 @@ export class TransactionService {
     }
   }
 
-  async validateAccountBalance(
+  private async validateAccountBalance(
     account: SubAccount,
     amount: number,
     position: 'debit' | 'credit',
@@ -247,6 +473,66 @@ export class TransactionService {
     }
   }
 
+  /**
+   * Helper to validate transaction type
+   */
+  private async validateTransactionType(transactionTypeId: number) {
+    const transactionType = await this.transactionTypeRepository.findOne({
+      where: { id: transactionTypeId },
+    });
+    if (!transactionType) {
+      throw new NotFoundException('Transaction type not found');
+    }
+    return transactionType;
+  }
+
+  async updateTransactionAddress(
+    transaction: Transaction,
+    address: {
+      recipientName: string;
+      addressLine1: string;
+      addressLine2?: string;
+      city: string;
+      state: string;
+      postalCode: string;
+      phoneNumber: string;
+    },
+  ): Promise<void> {
+    // Cari alamat yang terkait dengan transaksi
+    const existingAddress = await this.transactionContactRepository.findOneBy({
+      transaction: { id: transaction.id },
+    });
+
+    if (existingAddress) {
+      // Jika alamat ditemukan, perbarui
+      await this.transactionContactRepository.update(existingAddress.id, {
+        ...address,
+      });
+    } else {
+      // Jika alamat tidak ditemukan, buat yang baru
+      const newAddress = this.transactionContactRepository.create({
+        transaction: { id: transaction.id },
+        ...address,
+      });
+      await this.transactionContactRepository.save(newAddress);
+    }
+  }
+
+  async updateTransactionOrders(
+    transaction: Transaction,
+    orders: {
+      productId: number;
+      quantity: number;
+    }[],
+  ): Promise<void> {
+    // Hapus semua pesanan lama terkait transaksi
+    await this.transactionOrderRepository.delete({
+      transaction: { id: transaction.id },
+    });
+
+    await this.createTransactionOrders(transaction, orders);
+  }
+
   async updateSubAccountBalance(
     amount: number,
     debitAccount: SubAccount,
@@ -275,23 +561,11 @@ export class TransactionService {
     // Save the updated balance back to the database
     await this.subAccountRepository.save(subAccount);
   }
-  /**
-   * Helper to validate transaction type
-   */
-  private async validateTransactionType(transactionTypeId: number) {
-    const transactionType = await this.transactionTypeRepository.findOne({
-      where: { id: transactionTypeId },
-    });
-    if (!transactionType) {
-      throw new NotFoundException('Transaction type not found');
-    }
-    return transactionType;
-  }
 
   /**
    * Create transaction address
    */
-  private async createTransactionAddress(
+  async createTransactionAddress(
     transaction: Transaction,
     address: {
       recipientName: string;
@@ -303,34 +577,31 @@ export class TransactionService {
       phoneNumber: string;
     },
   ): Promise<void> {
-    const {
-      recipientName,
-      addressLine1,
-      addressLine2,
-      city,
-      state,
-      postalCode,
-      phoneNumber,
-    } = address;
-
     const transactionAddress = this.transactionContactRepository.create({
-      transaction,
-      addressLine1,
-      addressLine2: addressLine2 || null,
-      city,
-      state,
-      postalCode,
-      phoneNumber,
-      name: recipientName,
+      ...address,
     });
 
     await this.transactionContactRepository.save(transactionAddress);
   }
 
+  async findTransactionById(transactionId: number) {
+    // 1. Validate existing transaction
+    return await this.transactionRepository.findOne({
+      where: { id: transactionId },
+      relations: [
+        'debitAccount', // Relasi debitAccount
+        'debitAccount.account', // Relasi lebih dalam ke account dari debitAccount
+        'creditAccount', // Relasi creditAccount
+        'creditAccount.account', // Relasi lebih dalam ke account dari creditAccount
+        'store', // Relasi store
+        'customer', // Relasi customer
+      ],
+    });
+  }
   /**
    * Create transaction details
    */
-  private async createTransactionOrders(
+  async createTransactionOrders(
     transaction: Transaction,
     orders: {
       productId: number;
@@ -347,7 +618,7 @@ export class TransactionService {
         );
 
       const totalPrice = product.price * detail.quantity;
-      const transactionDetail = this.transactionProductRepository.create({
+      const transactionDetail = this.transactionOrderRepository.create({
         transaction,
         productName: product.name,
         productSku: product.sku,
@@ -355,7 +626,7 @@ export class TransactionService {
         quantity: detail.quantity,
         totalPrice,
       });
-      await this.transactionProductRepository.save(transactionDetail);
+      await this.transactionOrderRepository.save(transactionDetail);
     }
   }
 

@@ -17,7 +17,7 @@ export class TransactionContact {
   transaction: Transaction;
 
   @Column('varchar', { length: 255 })
-  name: string;
+  recipientName: string;
 
   @Column('varchar', { length: 255 })
   addressLine1: string;

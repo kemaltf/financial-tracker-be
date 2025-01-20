@@ -1,8 +1,8 @@
 import { Transaction } from 'src/transaction/transaction.entity';
 import { Entity, PrimaryGeneratedColumn, Column, ManyToOne } from 'typeorm';
 
-@Entity('transaction_product')
-export class TransactionProduct {
+@Entity('transaction_order')
+export class TransactionOrder {
   @PrimaryGeneratedColumn()
   id: number;
 

@@ -1,4 +1,4 @@
-import { Controller, Post, Body, Get } from '@nestjs/common';
+import { Controller, Post, Body, Get, Patch, Param } from '@nestjs/common';
 import { TransactionService } from './transaction.service';
 import { TransactionDTO } from './dto/transaction.dto';
 import { GetUser } from '@app/common/decorators/get-user.decorator';
@@ -34,16 +34,16 @@ export class TransactionController {
     return this.transactionService.checkForAnomalies();
   }
 
-  // @Patch(':id')
-  // async updateTransaction(
-  //   @Param('id') transactionId: number,
-  //   @Body() transactionDTO: TransactionDTO,
-  //   @GetUser() user: User,
-  // ) {
-  //   return this.transactionService.updateTransaction(
-  //     user.id,
-  //     transactionId,
-  //     transactionDTO,
-  //   );
-  // }
+  @Patch(':id')
+  async updateTransaction(
+    @Param('id') transactionId: number,
+    @Body() transactionDTO: TransactionDTO,
+    @GetUser() user: User,
+  ) {
+    return this.transactionService.updateTransaction(
+      transactionId,
+      user.id,
+      transactionDTO,
+    );
+  }
 }

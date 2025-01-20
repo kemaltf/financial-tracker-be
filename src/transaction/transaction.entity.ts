@@ -1,7 +1,7 @@
 import { FinancialParty } from '@app/financial-party/entity/financial-party.entity';
 import { Store } from 'src/store/store.entity';
 import { TransactionContact } from '@app/transaction/transaction-contact/transaction-contact.entity';
-import { TransactionProduct } from '@app/transaction/transactionProduct/transaction-product.entity';
+import { TransactionOrder } from '@app/transaction/transactionProduct/transaction-product.entity';
 import { TransactionType } from '@app/transaction/transactionType/transaction-type.entity';
 import { User } from 'src/user/user.entity';
 import {
@@ -68,10 +68,10 @@ export class Transaction {
 
   // IF TRANSACTION RELATED TO PRODUCT
   @OneToMany(
-    () => TransactionProduct,
+    () => TransactionOrder,
     (transactionProduct) => transactionProduct.transaction,
   )
-  transactionProduct: TransactionProduct[];
+  transactionProduct: TransactionOrder[];
 
   // WHO CREATE THIS TRANSACTION
   @ManyToOne(() => User, (user) => user.Transactions)
