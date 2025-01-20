@@ -6,7 +6,46 @@ import {
   IsOptional,
   IsArray,
   IsDate,
+  IsPostalCode,
+  IsPhoneNumber,
+  IsInt,
+  Min,
+  ValidateNested,
 } from 'class-validator';
+
+export class AddressDTO {
+  @IsString()
+  recipientName: string;
+
+  @IsString()
+  addressLine1: string;
+
+  @IsOptional()
+  @IsString()
+  addressLine2?: string;
+
+  @IsString()
+  city: string;
+
+  @IsString()
+  state: string;
+
+  @IsPostalCode('any')
+  postalCode: string;
+
+  @IsPhoneNumber() // Menggunakan format telepon global
+  phoneNumber: string;
+}
+
+export class OrderDTO {
+  @IsInt()
+  @Min(1)
+  productId: number; // ID produk, harus integer dan minimal 1
+
+  @IsInt()
+  @Min(1)
+  quantity: number; // Jumlah produk, harus integer dan minimal 1
+}
 
 export class TransactionDTO {
   @IsNumber()
@@ -51,21 +90,13 @@ export class TransactionDTO {
   dueDate?: Date; // Menerima string sebagai dueDate
 
   @IsOptional()
-  address?: {
-    recipientName: string;
-    addressLine1: string;
-    addressLine2?: string;
-    city: string;
-    state: string;
-    postalCode: string;
-    phoneNumber: string;
-  };
+  @ValidateNested()
+  @Type(() => AddressDTO)
+  address?: AddressDTO;
 
-  // Details hanya berisi ID produk dan kuantitas
   @IsArray()
   @IsOptional()
-  orders?: {
-    productId: number; // ID produk
-    quantity: number; // Jumlah produk
-  }[];
+  @ValidateNested({ each: true })
+  @Type(() => OrderDTO)
+  orders?: OrderDTO[];
 }

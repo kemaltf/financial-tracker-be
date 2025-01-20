@@ -1,16 +1,16 @@
 import {
-  // BadRequestException,
+  BadRequestException,
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Transaction } from 'src/transaction/transaction.entity';
-import { TransactionDTO } from './dto/transaction.dto';
+import { AddressDTO, OrderDTO, TransactionDTO } from './dto/transaction.dto';
 import { TransactionType } from './transactionType/transaction-type.entity';
 import { SubAccount } from '@app/account/sub-account.entity';
 import { TransactionContact } from './transaction-contact/transaction-contact.entity';
-import { TransactionProduct } from './transactionProduct/transaction-product.entity';
+import { TransactionOrder } from './transactionProduct/transaction-product.entity';
 import { Product } from '@app/product/entity/product.entity';
 import { Store } from '@app/store/store.entity';
 import {
@@ -40,8 +40,8 @@ export class TransactionService {
     private readonly debtsAndReceivablesRepository: Repository<DebtsAndReceivables>,
     @InjectRepository(TransactionContact)
     private transactionContactRepository: Repository<TransactionContact>,
-    @InjectRepository(TransactionProduct)
-    private transactionProductRepository: Repository<TransactionProduct>,
+    @InjectRepository(TransactionOrder)
+    private transactionOrderRepository: Repository<TransactionOrder>,
     @InjectRepository(Product)
     private productRepository: Repository<Product>,
   ) {}
@@ -49,9 +49,6 @@ export class TransactionService {
   /**
    *
    * === Core logic for creating transactions ===
-   * User akan menentukan wallet, tipe transaksi, detail transaksi, toko transaksi
-   * Difungsi ini akan mengupdate saldo wallet, transaction, accountant table
-   * Proses logikanya di bagian ini
    *
    */
   @HandleErrors()
@@ -73,38 +70,173 @@ export class TransactionService {
       debtorId,
       dueDate,
     } = transactionDTO;
-    console.log('transaction', transactionDTO);
 
-    // 1. Validate transaction type
+    // VALIDATE TRANSACTION DATA
+    const {
+      transactionType,
+      store,
+      customer,
+      creditor,
+      debtor,
+      creditAccount,
+      debitAccount,
+    } = await this.validateTransactionData(
+      transactionTypeId,
+      storeId,
+      customerId,
+      creditAccountId,
+      debitAccountId,
+      creditorId,
+      debtorId,
+      dueDate,
+    );
+
+    await this.validateAccountBalance(debitAccount, amount, 'debit');
+    await this.validateAccountBalance(creditAccount, amount, 'credit');
+
+    // CREATE TRANSACTION
+    const transaction = await this.createTransactionEntity(
+      userId,
+      transactionType,
+      amount,
+      store,
+      customer,
+      creditAccount,
+      debitAccount,
+      note,
+      address,
+      orders,
+      creditor,
+      debtor,
+      dueDate,
+    );
+
+    return transaction;
+  }
+
+  @HandleErrors()
+  async updateTransaction(
+    transactionId: number,
+    userId: string,
+    transactionDTO: TransactionDTO,
+  ) {
+    const existingTransaction = await this.findTransactionById(transactionId);
+    console.log('existingTransaction', existingTransaction);
+    if (!existingTransaction) {
+      throw new NotFoundException(
+        `Transaction with ID ${transactionId} not found.`,
+      );
+    }
+
+    const {
+      transactionTypeId, // need to be validated
+      amount,
+      storeId, // need to be validated
+      customerId, // need to be validated
+      creditAccountId, // need to be validated
+      debitAccountId, // need to be validated
+      note,
+      address,
+      orders,
+      creditorId,
+      debtorId,
+      dueDate,
+    } = transactionDTO;
+    console.log('transactionDTO', transactionDTO);
+
+    // VALIDATE TRANSACTION DATA
+    const {
+      transactionType,
+      store,
+      customer,
+      creditor,
+      debtor,
+      creditAccount,
+      debitAccount,
+    } = await this.validateTransactionData(
+      transactionTypeId,
+      storeId,
+      customerId,
+      creditAccountId,
+      debitAccountId,
+      creditorId,
+      debtorId,
+      dueDate,
+    );
+
+    await this.validateAccountBalance(debitAccount, amount, 'debit');
+    await this.validateAccountBalance(creditAccount, amount, 'credit');
+
+    console.log('===>existingTransaction.amount', existingTransaction.amount);
+    // reset the balance for the existing transaction
+    const { creditUpdated, debitUpdated } = await this.updateSubAccountBalance(
+      -existingTransaction.amount,
+      existingTransaction.debitAccount,
+      existingTransaction.creditAccount,
+    );
+
+    // 11. Update transaction fields
+    // existingTransaction.transactionType = transactionType;
+    // existingTransaction.amount = amount;
+    // existingTransaction.note = note;
+    // existingTransaction.store = store ? store : null;
+    // existingTransaction.customer = customer ? customer : null;
+    // const user = await this.userRepository.findOne({ where: { id: userId } });
+    // if (!user) {
+    //   throw new NotFoundException(`User with ID ${userId} not found.`);
+    // }
+    // existingTransaction.user = user;
+    // existingTransaction.debitAccount = debitAccount;
+    // existingTransaction.creditAccount = creditAccount;
+
+    // console.log(transaction);
+    // return transaction;
+
+    return await this.updateTransactionEntity(
+      existingTransaction,
+      transactionId,
+      userId,
+      transactionType,
+      amount,
+      store,
+      customer,
+      creditUpdated,
+      debitUpdated,
+      note,
+      address,
+      orders,
+      creditor,
+      debtor,
+      dueDate,
+    );
+  }
+
+  private async validateTransactionData(
+    transactionTypeId: number,
+    storeId: number,
+    customerId: number,
+    creditAccountId: number,
+    debitAccountId: number,
+    creditorId: number,
+    debtorId: number,
+    dueDate: Date,
+  ) {
+    // 1. Validate transaction type exist in the database
     const transactionType =
       await this.validateTransactionType(transactionTypeId);
 
-    console.log('first', transactionType);
-    // 2. Validate Store
+    // 2. Validate Store exist in the database
     const store = storeId ? await this.validateStore(storeId) : null;
-    console.log('second', store);
-    // 3. Validate customer
     const customer = customerId
       ? await this.validateFinancialParty(customerId, Role.customer)
       : null;
-
-    console.log('third', customer);
-
-    // 4. Validate creditor
     const creditor = creditorId
       ? await this.validateFinancialParty(creditorId, Role.creditor)
       : null;
-
-    console.log('fourth', creditor);
-
-    // 5. Validate debtor
     const debtor = debtorId
       ? await this.validateFinancialParty(debtorId, Role.debtor)
       : null;
 
-    console.log('fifth', debtor);
-
-    // 6. Validate debt and receivable
     this.validateDebtAndReceivable(
       transactionType.name,
       creditor?.id,
@@ -112,11 +244,8 @@ export class TransactionService {
       dueDate,
     );
 
-    // 6. Validate account
     const creditAccount = await this.validateaccount(creditAccountId);
     const debitAccount = await this.validateaccount(debitAccountId);
-    console.log('credit', creditAccount);
-    console.log('debit', debitAccount);
 
     if (!creditAccount || !debitAccount) {
       throw new NotFoundException(
@@ -124,55 +253,141 @@ export class TransactionService {
       );
     }
 
-    // 8. Validasi saldo akun debit dan kredit agar tidak negatif
-    await this.validateAccountBalance(debitAccount, amount, 'debit'); // Validasi untuk akun debit
-    await this.validateAccountBalance(creditAccount, amount, 'credit'); // Validasi untuk akun kredit
+    return {
+      transactionType,
+      store,
+      customer,
+      creditor,
+      debtor,
+      creditAccount,
+      debitAccount,
+    };
+  }
 
-    // 5. Create a transaction
+  private async createTransactionEntity(
+    userId: string,
+    transactionType: TransactionType,
+    amount: number,
+    store: Store,
+    customer: FinancialParty,
+    creditAccount: SubAccount,
+    debitAccount: SubAccount,
+    note: string,
+    address: AddressDTO,
+    orders: OrderDTO[],
+    creditor: FinancialParty,
+    debtor: FinancialParty,
+    dueDate: Date,
+  ): Promise<Transaction> {
     const transaction = this.transactionRepository.create({
       transactionType: { id: transactionType.id },
       amount,
       note,
       store: { id: store?.id },
-      customer: {
-        id: customer?.id,
-      },
+      customer: { id: customer?.id },
       user: { id: userId },
       debitAccount: { id: debitAccount.id },
       creditAccount: { id: creditAccount.id },
     });
-
-    console.log('transaction', transaction);
 
     await this.updateSubAccountBalance(
       transaction.amount,
       debitAccount,
       creditAccount,
     );
+
     await this.transactionRepository.save(transaction);
 
-    // 7. Save address if exist
     if (address) await this.createTransactionAddress(transaction, address);
-
-    // 8. Save orders transaction if exist
     if (orders?.length) await this.createTransactionOrders(transaction, orders);
 
-    // 9. Save debt and receivable if exist
     if (
       transactionType.name === 'Hutang' ||
       transactionType.name === 'Piutang'
     ) {
       const debtsAndReceivables = this.debtsAndReceivablesRepository.create({
-        transaction,
         dueDate,
         status: 'pending',
         creditor: { id: creditor.id },
         debtor: { id: debtor.id },
+        transaction: [transaction],
       });
       await this.debtsAndReceivablesRepository.save(debtsAndReceivables);
     }
 
     return transaction;
+  }
+  private async updateTransactionEntity(
+    existingTransaction: Transaction,
+    transactionId: number,
+    userId: string,
+    transactionType: TransactionType,
+    amount: number,
+    store: Store,
+    customer: FinancialParty,
+    creditAccount: SubAccount,
+    debitAccount: SubAccount,
+    note: string,
+    address: AddressDTO,
+    orders: OrderDTO[],
+    creditor: FinancialParty,
+    debtor: FinancialParty,
+    dueDate: Date,
+  ): Promise<Transaction> {
+    await this.transactionRepository.update(transactionId, {
+      transactionType: { id: transactionType.id },
+      amount,
+      note,
+      store: { id: store?.id },
+      customer: { id: customer?.id },
+      user: { id: userId },
+      debitAccount: { id: debitAccount.id },
+      creditAccount: { id: creditAccount.id },
+    });
+
+    console.log('new updated', amount, debitAccount, creditAccount);
+    // 12. Update balances
+    await this.updateSubAccountBalance(amount, debitAccount, creditAccount);
+
+    // 14. Update address if exist
+    if (address) {
+      await this.updateTransactionAddress(existingTransaction, address);
+    }
+
+    // 15. Update orders if exist
+    if (orders?.length) {
+      await this.updateTransactionOrders(existingTransaction, orders);
+    }
+
+    // 16. Update debt and receivable if applicable
+    if (
+      transactionType.name === 'Hutang' ||
+      transactionType.name === 'Piutang'
+    ) {
+      const existingDebtReceivable =
+        await this.debtsAndReceivablesRepository.findOne({
+          where: { transaction: { id: transactionId } },
+        });
+
+      if (existingDebtReceivable) {
+        existingDebtReceivable.dueDate = dueDate;
+        existingDebtReceivable.creditor = creditor ? creditor : null;
+        existingDebtReceivable.debtor = debtor ? debtor : null;
+
+        await this.debtsAndReceivablesRepository.save(existingDebtReceivable);
+      } else {
+        const newDebtReceivable = this.debtsAndReceivablesRepository.create({
+          dueDate,
+          status: 'pending',
+          creditor: { id: creditor?.id },
+          debtor: { id: debtor?.id },
+          transaction: [existingTransaction],
+        });
+        await this.debtsAndReceivablesRepository.save(newDebtReceivable);
+      }
+    }
+
+    return await this.findTransactionById(transactionId);
   }
 
   private async validateStore(storeId: number) {
@@ -219,63 +434,40 @@ export class TransactionService {
     debtorId: number,
     dueDate: Date,
   ) {
-    console.log('tess', transactionTypeName, creditorId, debtorId, dueDate);
     if (transactionTypeName === 'Hutang' || transactionTypeName === 'Piutang') {
       if ([creditorId, debtorId, dueDate].some((value) => !value)) {
         throw new NotFoundException(
-          `Customer ID, Creditor ID, Debtor ID, and Due Date must be provided for ${transactionTypeName} transaction.`,
+          `Creditor ID, Debtor ID, and Due Date must be provided for ${transactionTypeName} transaction.`,
         );
       }
     }
   }
 
-  async validateAccountBalance(
+  private async validateAccountBalance(
     account: SubAccount,
     amount: number,
     position: 'debit' | 'credit',
   ): Promise<void> {
     if (position === 'debit') {
-      // // Jika akun di posisi debit, Asset dan Expense akan bertambah
-      // if (
-      //   account.account.type === AccountType.ASSET ||
-      //   account.account.type === AccountType.EXPENSE
-      // ) {
-      //   if (account.balance < amount) {
-      //     throw new Error(
-      //       `Saldo akun ${account.name} tidak cukup untuk melakukan transaksi debit.`,
-      //     );
-      //   }
-      // }
       // Jika akun di posisi debit, Liability dan Equity akan berkurang
       if (
         account.account.type === AccountType.LIABILITY ||
         account.account.type === AccountType.EQUITY
       ) {
         if (account.balance - amount < 0) {
-          throw new Error(
+          throw new BadRequestException(
             `Saldo akun ${account.name} tidak cukup untuk transaksi debit pada jenis Liability/Equity.`,
           );
         }
       }
     } else if (position === 'credit') {
-      // // Jika akun di posisi kredit, Liability dan Equity akan bertambah
-      // if (
-      //   account.account.type === AccountType.LIABILITY ||
-      //   account.account.type === AccountType.EQUITY
-      // ) {
-      //   if (account.balance + amount < 0) {
-      //     throw new Error(
-      //       `Saldo akun ${account.name} tidak cukup untuk transaksi kredit.`,
-      //     );
-      //   }
-      // }
       // Jika akun di posisi kredit, Asset dan Expense akan berkurang
       if (
         account.account.type === AccountType.ASSET ||
         account.account.type === AccountType.EXPENSE
       ) {
         if (account.balance - amount < 0) {
-          throw new Error(
+          throw new BadRequestException(
             `Saldo akun ${account.name} tidak cukup untuk transaksi kredit pada jenis Asset/Expense.`,
           );
         }
@@ -283,33 +475,6 @@ export class TransactionService {
     }
   }
 
-  async updateSubAccountBalance(
-    amount: number,
-    debitAccount: SubAccount,
-    creditAccount: SubAccount,
-  ) {
-    // Update the balance for the debit account
-    const debitAccountBalanceImpact =
-      debitAccount.account.normalBalance === BalanceImpactSide.DEBIT
-        ? amount
-        : -amount;
-    await this.updateAccountBalance(debitAccount, debitAccountBalanceImpact);
-
-    // Update the balance for the credit account
-    const creditAccountBalanceImpact =
-      creditAccount.account.normalBalance === BalanceImpactSide.DEBIT
-        ? -amount
-        : amount;
-    await this.updateAccountBalance(creditAccount, creditAccountBalanceImpact);
-  }
-
-  async updateAccountBalance(subAccount: SubAccount, balanceImpact: number) {
-    // Fetch the current balance of the subAccount
-    subAccount.balance += balanceImpact; // Adjust the balance
-
-    // Save the updated balance back to the database
-    await this.subAccountRepository.save(subAccount);
-  }
   /**
    * Helper to validate transaction type
    */
@@ -323,24 +488,98 @@ export class TransactionService {
     return transactionType;
   }
 
-  /**
-   * helper to check whether is debit transaction
-   */
-  // private isDebitTransaction(transactionTypeName: string): boolean {
-  //   const debitTransactionTypes = [
-  //     'Pengeluaran',
-  //     'Pengeluaran Piutang',
-  //     'Tarik Modal',
-  //     'Transfer',
-  //     'Piutang',
-  //   ];
-  //   return debitTransactionTypes.includes(transactionTypeName);
-  // }
+  async updateTransactionAddress(
+    transaction: Transaction,
+    address: {
+      recipientName: string;
+      addressLine1: string;
+      addressLine2?: string;
+      city: string;
+      state: string;
+      postalCode: string;
+      phoneNumber: string;
+    },
+  ): Promise<void> {
+    // Cari alamat yang terkait dengan transaksi
+    const existingAddress = await this.transactionContactRepository.findOneBy({
+      transaction: { id: transaction.id },
+    });
+
+    if (existingAddress) {
+      // Jika alamat ditemukan, perbarui
+      await this.transactionContactRepository.update(existingAddress.id, {
+        ...address,
+      });
+    } else {
+      // Jika alamat tidak ditemukan, buat yang baru
+      const newAddress = this.transactionContactRepository.create({
+        transaction: { id: transaction.id },
+        ...address,
+      });
+      await this.transactionContactRepository.save(newAddress);
+    }
+  }
+
+  async updateTransactionOrders(
+    transaction: Transaction,
+    orders: {
+      productId: number;
+      quantity: number;
+    }[],
+  ): Promise<void> {
+    // Hapus semua pesanan lama terkait transaksi
+    await this.transactionOrderRepository.delete({
+      transaction: { id: transaction.id },
+    });
+
+    await this.createTransactionOrders(transaction, orders);
+  }
+
+  async updateSubAccountBalance(
+    amount: number,
+    debitAccount: SubAccount,
+    creditAccount: SubAccount,
+  ) {
+    console.log('amount', amount);
+    console.log('debitAccount', debitAccount);
+    // Update the balance for the debit account
+    const debitAccountBalanceImpact =
+      debitAccount.account.normalBalance === BalanceImpactSide.DEBIT
+        ? amount
+        : -amount;
+    console.log('debitAccountBalanceImpact', debitAccountBalanceImpact);
+    const debitUpdated = await this.updateAccountBalance(
+      debitAccount,
+      debitAccountBalanceImpact,
+    );
+
+    // Update the balance for the credit account
+    const creditAccountBalanceImpact =
+      creditAccount.account.normalBalance === BalanceImpactSide.DEBIT
+        ? -amount
+        : amount;
+
+    const creditUpdated = await this.updateAccountBalance(
+      creditAccount,
+      creditAccountBalanceImpact,
+    );
+
+    return { debitUpdated, creditUpdated };
+  }
+
+  async updateAccountBalance(subAccount: SubAccount, balanceImpact: number) {
+    // Fetch the current balance of the subAccount
+    subAccount.balance += balanceImpact; // Adjust the balance
+    console.log('subAccount now', subAccount);
+    // Save the updated balance back to the database
+    await this.subAccountRepository.save(subAccount);
+    return subAccount;
+  }
 
   /**
    * Create transaction address
    */
-  private async createTransactionAddress(
+  async createTransactionAddress(
     transaction: Transaction,
     address: {
       recipientName: string;
@@ -352,34 +591,32 @@ export class TransactionService {
       phoneNumber: string;
     },
   ): Promise<void> {
-    const {
-      recipientName,
-      addressLine1,
-      addressLine2,
-      city,
-      state,
-      postalCode,
-      phoneNumber,
-    } = address;
-
     const transactionAddress = this.transactionContactRepository.create({
-      transaction,
-      addressLine1,
-      addressLine2: addressLine2 || null,
-      city,
-      state,
-      postalCode,
-      phoneNumber,
-      name: recipientName,
+      ...address,
+      transaction: { id: transaction.id },
     });
 
     await this.transactionContactRepository.save(transactionAddress);
   }
 
+  async findTransactionById(transactionId: number) {
+    // 1. Validate existing transaction
+    return await this.transactionRepository.findOne({
+      where: { id: transactionId },
+      relations: [
+        'debitAccount', // Relasi debitAccount
+        'debitAccount.account', // Relasi lebih dalam ke account dari debitAccount
+        'creditAccount', // Relasi creditAccount
+        'creditAccount.account', // Relasi lebih dalam ke account dari creditAccount
+        'store', // Relasi store
+        'customer', // Relasi customer
+      ],
+    });
+  }
   /**
    * Create transaction details
    */
-  private async createTransactionOrders(
+  async createTransactionOrders(
     transaction: Transaction,
     orders: {
       productId: number;
@@ -396,7 +633,7 @@ export class TransactionService {
         );
 
       const totalPrice = product.price * detail.quantity;
-      const transactionDetail = this.transactionProductRepository.create({
+      const transactionDetail = this.transactionOrderRepository.create({
         transaction,
         productName: product.name,
         productSku: product.sku,
@@ -404,305 +641,9 @@ export class TransactionService {
         quantity: detail.quantity,
         totalPrice,
       });
-      await this.transactionProductRepository.save(transactionDetail);
+      await this.transactionOrderRepository.save(transactionDetail);
     }
   }
-
-  // private async processAccountingNWallet(
-  //   transaction: Transaction,
-  //   transactionTypeName: string,
-  //   originWallet: Wallet,
-  //   destinationWallet: Wallet,
-  //   amount: number,
-  //   userId: string,
-  //   dueDate?: Date,
-  //   financialPartyId?: number,
-  // ): Promise<void> {
-  //   // Get account id
-  //   const cashAccount = await this.getAccountByCode('101');
-  //   const incomeAccount = await this.getAccountByCode('401');
-  //   const expenseAccount = await this.getAccountByCode('501');
-  //   const debtAccount = await this.getAccountByCode('201');
-  //   const receivableAccount = await this.getAccountByCode('301');
-  //   const equityAccount = await this.getAccountByCode('601');
-
-  //   // const entries: AccountingEntry[] = [];
-  //   const oldWalletState = { balance: originWallet.balance };
-  //   console.log('tess', typeof originWallet.balance);
-  //   console.log('tess 2', typeof amount);
-
-  //   // Logic accounting
-  //   switch (transactionTypeName) {
-  //     case 'Pemasukan':
-  //       originWallet.balance += amount;
-  //       // entries.push(
-  //       //   this.createAccountingEntry(
-  //       //     transaction,
-  //       //     cashAccount,
-  //       //     'DEBIT',
-  //       //     amount,
-  //       //     `Kas bertambah dari pemasukan untuk transaksi #${transaction.id}`,
-  //       //   ),
-  //       //   this.createAccountingEntry(
-  //       //     transaction,
-  //       //     incomeAccount,
-  //       //     'CREDIT',
-  //       //     amount,
-  //       //     `Pendapatan bertambah untuk transaksi #${transaction.id}`,
-  //       //   ),
-  //       // );
-  //       break;
-
-  //     case 'Pengeluaran':
-  //       // await this.checkWalletBalance(originWallet, amount);
-  //       originWallet.balance -= amount;
-  //       // entries.push(
-  //       //   this.createAccountingEntry(
-  //       //     transaction,
-  //       //     expenseAccount,
-  //       //     'DEBIT',
-  //       //     amount,
-  //       //     `Beban bertambah untuk transaksi #${transaction.id}`,
-  //       //   ),
-  //       //   this.createAccountingEntry(
-  //       //     transaction,
-  //       //     cashAccount,
-  //       //     'CREDIT',
-  //       //     amount,
-  //       //     `Kas berkurang untuk transaksi #${transaction.id}`,
-  //       //   ),
-  //       // );
-  //       break;
-
-  //     case 'Hutang':
-  //       originWallet.balance += amount;
-
-  //       if (!financialPartyId) {
-  //         throw new NotFoundException(
-  //           `Debtor with ID ${financialPartyId} not found`,
-  //         );
-  //       }
-
-  //       // Update DebtsAndReceivables table for debt creation
-  //       await this.createDebtEntry(
-  //         transaction,
-  //         amount,
-  //         dueDate,
-  //         financialPartyId,
-  //       );
-  //       // entries.push(
-  //       //   this.createAccountingEntry(
-  //       //     transaction,
-  //       //     debtAccount,
-  //       //     'CREDIT',
-  //       //     amount,
-  //       //     `Hutang bertambah untuk transaksi #${transaction.id}`,
-  //       //   ),
-  //       //   this.createAccountingEntry(
-  //       //     transaction,
-  //       //     cashAccount,
-  //       //     'DEBIT',
-  //       //     amount,
-  //       //     `Kas bertambah dari pencatatan hutang untuk transaksi #${transaction.id}`,
-  //       //   ),
-  //       // );
-  //       break;
-
-  //     case 'Piutang':
-  //       // await this.checkWalletBalance(originWallet, amount);
-  //       originWallet.balance -= amount;
-
-  //       if (!financialPartyId) {
-  //         throw new NotFoundException(
-  //           `Creditor with ID ${financialPartyId} not found`,
-  //         );
-  //       }
-
-  //       // Update DebtsAndReceivables table for receivable creation
-  //       await this.createReceivableEntry(
-  //         transaction,
-  //         amount,
-  //         dueDate,
-  //         financialPartyId,
-  //       );
-
-  //       // entries.push(
-  //       //   this.createAccountingEntry(
-  //       //     transaction,
-  //       //     receivableAccount,
-  //       //     'DEBIT',
-  //       //     amount,
-  //       //     `Piutang bertambah untuk transaksi #${transaction.id}`,
-  //       //   ),
-  //       //   this.createAccountingEntry(
-  //       //     transaction,
-  //       //     incomeAccount,
-  //       //     'CREDIT',
-  //       //     amount,
-  //       //     `Pendapatan bertambah untuk transaksi #${transaction.id}`,
-  //       //   ),
-  //       // );
-  //       break;
-
-  //     case 'Tanam Modal':
-  //       originWallet.balance += amount;
-  //       // entries.push(
-  //       //   this.createAccountingEntry(
-  //       //     transaction,
-  //       //     cashAccount,
-  //       //     'DEBIT',
-  //       //     amount,
-  //       //     `Kas bertambah dari penambahan modal untuk transaksi #${transaction.id}`,
-  //       //   ),
-  //       //   this.createAccountingEntry(
-  //       //     transaction,
-  //       //     equityAccount,
-  //       //     'CREDIT',
-  //       //     amount,
-  //       //     `Ekuitas modal bertambah untuk transaksi #${transaction.id}`,
-  //       //   ),
-  //       // );
-  //       break;
-
-  //     case 'Tarik Modal':
-  //       // await this.checkWalletBalance(originWallet, amount);
-  //       originWallet.balance -= amount;
-  //       // entries.push(
-  //       //   this.createAccountingEntry(
-  //       //     transaction,
-  //       //     equityAccount,
-  //       //     'DEBIT',
-  //       //     amount,
-  //       //     `Ekuitas modal berkurang untuk transaksi #${transaction.id}`,
-  //       //   ),
-  //       //   this.createAccountingEntry(
-  //       //     transaction,
-  //       //     cashAccount,
-  //       //     'CREDIT',
-  //       //     amount,
-  //       //     `Kas berkurang untuk transaksi #${transaction.id}`,
-  //       //   ),
-  //       // );
-  //       break;
-
-  //     case 'Transfer':
-  //       await this.handleTransfer(
-  //         transaction,
-  //         originWallet,
-  //         destinationWallet,
-  //         amount,
-  //       );
-  //       break;
-
-  //     default:
-  //       throw new Error(`Unsupported transaction type: ${transactionTypeName}`);
-  //   }
-
-  //   await this.walletRepository.save(originWallet);
-  //   const newWalletState = { balance: originWallet.balance };
-  //   await this.walletLog.save(
-  //     this.walletLog.create({
-  //       action: 'Update',
-  //       oldValue: oldWalletState,
-  //       newValue: newWalletState,
-  //       wallet: originWallet,
-  //       performed_by: userId,
-  //     }),
-  //   );
-  // }
-
-  // private async handleTransfer(
-  //   transaction: Transaction,
-  //   originWallet: Wallet,
-  //   destinationWallet: Wallet,
-  //   amount: number,
-  // ): Promise<void> {
-  //   if (!destinationWallet) {
-  //     throw new NotFoundException('Destination wallet not found');
-  //   }
-
-  //   // Check if the source wallet has enough balance for the transfer
-  //   // if (originWallet.balance < amount) {
-  //   //   throw new BadRequestException('Insufficient balance for the transfer');
-  //   // }
-
-  //   // Deduct the amount from the source wallet
-  //   originWallet.balance -= amount;
-  //   await this.walletRepository.save(originWallet);
-
-  //   // Add the amount to the destination wallet
-  //   destinationWallet.balance += amount;
-  //   await this.walletRepository.save(destinationWallet);
-
-  //   // Create accounting entries for the transfer
-  //   const sourceAccount = await this.getAccountByCode('101'); // Example account code for source wallet
-  //   const destinationAccount = await this.getAccountByCode('102'); // Example account code for destination wallet
-
-  //   // const entries: AccountingEntry[] = [
-  //   //   this.createAccountingEntry(
-  //   //     transaction,
-  //   //     sourceAccount,
-  //   //     'CREDIT',
-  //   //     amount,
-  //   //     `Transferred to wallet ${destinationWallet.id} for transaction #${transaction.id}`,
-  //   //   ),
-  //   //   this.createAccountingEntry(
-  //   //     transaction,
-  //   //     destinationAccount,
-  //   //     'DEBIT',
-  //   //     amount,
-  //   //     `Transferred from wallet ${originWallet.id} for transaction #${transaction.id}`,
-  //   //   ),
-  //   // ];
-
-  //   // Optionally, log the transfer action in a transaction log
-  //   const oldWalletState = { balance: originWallet.balance };
-  //   const newWalletState = { balance: destinationWallet.balance };
-  //   await this.walletLog.save(
-  //     this.walletLog.create({
-  //       action: 'Transfer',
-  //       oldValue: oldWalletState,
-  //       newValue: newWalletState,
-  //       wallet: originWallet,
-  //     }),
-  //   );
-  // }
-
-  // Helper function to create debt entry
-  // private async createDebtEntry(
-  //   transaction: Transaction,
-  //   amount: number,
-  //   dueDate: Date,
-  //   debtorId: number,
-  // ): Promise<void> {
-  //   const debtEntry = this.debtsAndReceivablesRepository.create({
-  //     amount,
-  //     transaction,
-  //     type: 'debt',
-  //     dueDate,
-  //     status: 'pending',
-  //     financial_party: { id: debtorId },
-  //   });
-  //   await this.debtsAndReceivablesRepository.save(debtEntry);
-  // }
-
-  // Helper function to create receivable entry
-  // private async createReceivableEntry(
-  //   transaction: Transaction,
-  //   amount: number,
-  //   dueDate: Date,
-  //   creditorId: number,
-  // ): Promise<void> {
-  //   const receivableEntry = this.debtsAndReceivablesRepository.create({
-  //     amount,
-  //     transaction,
-  //     type: 'receivable',
-  //     dueDate,
-  //     status: 'pending',
-  //     financial_party: { id: creditorId },
-  //   });
-  //   await this.debtsAndReceivablesRepository.save(receivableEntry);
-  // }
 
   async getFinancialSummary() {
     const totalIncome = await this.transactionRepository.sum('amount', {

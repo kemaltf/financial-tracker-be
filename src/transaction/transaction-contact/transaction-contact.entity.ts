@@ -1,11 +1,5 @@
 import { Transaction } from 'src/transaction/transaction.entity';
-import {
-  Entity,
-  PrimaryGeneratedColumn,
-  Column,
-  OneToOne,
-  JoinColumn,
-} from 'typeorm';
+import { Entity, PrimaryGeneratedColumn, Column, OneToOne } from 'typeorm';
 
 @Entity('transaction_contact')
 export class TransactionContact {
@@ -13,11 +7,10 @@ export class TransactionContact {
   id: number;
 
   @OneToOne(() => Transaction, (transaction) => transaction.transactionContact)
-  @JoinColumn() // Menambahkan JoinColumn untuk relasi OneToOne
   transaction: Transaction;
 
   @Column('varchar', { length: 255 })
-  name: string;
+  recipientName: string;
 
   @Column('varchar', { length: 255 })
   addressLine1: string;
