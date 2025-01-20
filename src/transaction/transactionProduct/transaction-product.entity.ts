@@ -12,7 +12,7 @@ export class TransactionOrder {
   @PrimaryGeneratedColumn()
   id: number;
 
-  @ManyToOne(() => Transaction, (transaction) => transaction.transactionProduct)
+  @ManyToOne(() => Transaction, (transaction) => transaction.transactionOrder)
   @JoinColumn({ name: 'transaction_id' })
   transaction: Transaction;
 

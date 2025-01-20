@@ -1,5 +1,6 @@
 import {
   BadRequestException,
+  ForbiddenException,
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
@@ -20,6 +21,7 @@ import {
 import { DebtsAndReceivables } from '@app/debt-receivable/debts-and-receivables.entity';
 import { HandleErrors } from '@app/common/decorators';
 import { AccountType, BalanceImpactSide } from '@app/account/account.entity';
+import { User } from '@app/user/user.entity';
 
 @Injectable()
 export class TransactionService {
@@ -120,7 +122,10 @@ export class TransactionService {
     userId: string,
     transactionDTO: TransactionDTO,
   ) {
-    const existingTransaction = await this.findTransactionById(transactionId);
+    const existingTransaction = await this.findTransactionById(
+      transactionId,
+      userId,
+    );
     console.log('existingTransaction', existingTransaction);
     if (!existingTransaction) {
       throw new NotFoundException(
@@ -209,6 +214,54 @@ export class TransactionService {
       debtor,
       dueDate,
     );
+  }
+
+  @HandleErrors()
+  async deleteTransaction(transactionId: number, user: User): Promise<void> {
+    const existingTransaction = await this.findTransactionById(
+      transactionId,
+      user.id,
+    );
+    console.log('first, existingTransaction', existingTransaction);
+
+    console.log('...', existingTransaction.user.username);
+    console.log('....', user.username);
+    if (existingTransaction.user.username !== user.username) {
+      throw new ForbiddenException('You can only delete your own store');
+    }
+
+    // 2. Reset saldo untuk debit dan kredit sub-akun
+    await this.updateSubAccountBalance(
+      -existingTransaction.amount,
+      existingTransaction.debitAccount,
+      existingTransaction.creditAccount,
+    );
+
+    // 3. Hapus entitas terkait (contoh: hutang/ piutang, pesanan)
+    if (
+      existingTransaction.transactionType.name === 'Hutang' ||
+      existingTransaction.transactionType.name === 'Piutang'
+    ) {
+      await this.debtsAndReceivablesRepository.delete({
+        transaction: { id: transactionId },
+      });
+    }
+
+    // 4. Hapus entitas terkait order
+    if (existingTransaction.transactionOrder?.length) {
+      await this.transactionOrderRepository.delete({
+        transaction: { id: transactionId },
+      });
+    }
+
+    // 3. Hapus entitas terkait order
+    if (existingTransaction.transactionContact) {
+      await this.transactionContactRepository.delete({
+        transaction: { id: transactionId },
+      });
+    }
+
+    await this.transactionRepository.delete(transactionId);
   }
 
   private async validateTransactionData(
@@ -345,7 +398,6 @@ export class TransactionService {
       creditAccount: { id: creditAccount.id },
     });
 
-    console.log('new updated', amount, debitAccount, creditAccount);
     // 12. Update balances
     await this.updateSubAccountBalance(amount, debitAccount, creditAccount);
 
@@ -387,7 +439,7 @@ export class TransactionService {
       }
     }
 
-    return await this.findTransactionById(transactionId);
+    return await this.findTransactionById(transactionId, userId);
   }
 
   private async validateStore(storeId: number) {
@@ -599,10 +651,11 @@ export class TransactionService {
     await this.transactionContactRepository.save(transactionAddress);
   }
 
-  async findTransactionById(transactionId: number) {
+  async findTransactionById(transactionId: number, userId: string) {
+    console.log('tes', userId);
     // 1. Validate existing transaction
     return await this.transactionRepository.findOne({
-      where: { id: transactionId },
+      where: { id: transactionId, user: { id: userId } },
       relations: [
         'debitAccount', // Relasi debitAccount
         'debitAccount.account', // Relasi lebih dalam ke account dari debitAccount
@@ -610,6 +663,9 @@ export class TransactionService {
         'creditAccount.account', // Relasi lebih dalam ke account dari creditAccount
         'store', // Relasi store
         'customer', // Relasi customer
+        'user', // Relasi user
+        'transactionType', // Relasi transactionType
+        'transactionOrder', // Relasi transactionOrder
       ],
     });
   }
