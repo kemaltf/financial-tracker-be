@@ -73,36 +73,27 @@ export class TransactionService {
       debtorId,
       dueDate,
     } = transactionDTO;
-    console.log('transaction', transactionDTO);
 
     // 1. Validate transaction type
     const transactionType =
       await this.validateTransactionType(transactionTypeId);
 
-    console.log('first', transactionType);
     // 2. Validate Store
     const store = storeId ? await this.validateStore(storeId) : null;
-    console.log('second', store);
     // 3. Validate customer
     const customer = customerId
       ? await this.validateFinancialParty(customerId, Role.customer)
       : null;
-
-    console.log('third', customer);
 
     // 4. Validate creditor
     const creditor = creditorId
       ? await this.validateFinancialParty(creditorId, Role.creditor)
       : null;
 
-    console.log('fourth', creditor);
-
     // 5. Validate debtor
     const debtor = debtorId
       ? await this.validateFinancialParty(debtorId, Role.debtor)
       : null;
-
-    console.log('fifth', debtor);
 
     // 6. Validate debt and receivable
     this.validateDebtAndReceivable(
@@ -115,8 +106,6 @@ export class TransactionService {
     // 6. Validate account
     const creditAccount = await this.validateaccount(creditAccountId);
     const debitAccount = await this.validateaccount(debitAccountId);
-    console.log('credit', creditAccount);
-    console.log('debit', debitAccount);
 
     if (!creditAccount || !debitAccount) {
       throw new NotFoundException(
@@ -141,8 +130,6 @@ export class TransactionService {
       debitAccount: { id: debitAccount.id },
       creditAccount: { id: creditAccount.id },
     });
-
-    console.log('transaction', transaction);
 
     await this.updateSubAccountBalance(
       transaction.amount,
@@ -219,7 +206,6 @@ export class TransactionService {
     debtorId: number,
     dueDate: Date,
   ) {
-    console.log('tess', transactionTypeName, creditorId, debtorId, dueDate);
     if (transactionTypeName === 'Hutang' || transactionTypeName === 'Piutang') {
       if ([creditorId, debtorId, dueDate].some((value) => !value)) {
         throw new NotFoundException(
@@ -288,14 +274,12 @@ export class TransactionService {
     debitAccount: SubAccount,
     creditAccount: SubAccount,
   ) {
-    console.log('log', creditAccount);
     // Update the balance for the debit account
     const debitAccountBalanceImpact =
       debitAccount.account.normalBalance === BalanceImpactSide.DEBIT
         ? amount
         : -amount;
     await this.updateAccountBalance(debitAccount, debitAccountBalanceImpact);
-    console.log('debitAccountBalanceImpact', debitAccountBalanceImpact);
 
     // Update the balance for the credit account
     const creditAccountBalanceImpact =
@@ -303,7 +287,6 @@ export class TransactionService {
         ? -amount
         : amount;
 
-    console.log('creditAccountBalanceImpact', creditAccountBalanceImpact);
     await this.updateAccountBalance(creditAccount, creditAccountBalanceImpact);
   }
 
