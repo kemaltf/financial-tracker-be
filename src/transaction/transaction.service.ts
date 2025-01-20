@@ -1,5 +1,5 @@
 import {
-  // BadRequestException,
+  BadRequestException,
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
@@ -221,47 +221,25 @@ export class TransactionService {
     position: 'debit' | 'credit',
   ): Promise<void> {
     if (position === 'debit') {
-      // // Jika akun di posisi debit, Asset dan Expense akan bertambah
-      // if (
-      //   account.account.type === AccountType.ASSET ||
-      //   account.account.type === AccountType.EXPENSE
-      // ) {
-      //   if (account.balance < amount) {
-      //     throw new Error(
-      //       `Saldo akun ${account.name} tidak cukup untuk melakukan transaksi debit.`,
-      //     );
-      //   }
-      // }
       // Jika akun di posisi debit, Liability dan Equity akan berkurang
       if (
         account.account.type === AccountType.LIABILITY ||
         account.account.type === AccountType.EQUITY
       ) {
         if (account.balance - amount < 0) {
-          throw new Error(
+          throw new BadRequestException(
             `Saldo akun ${account.name} tidak cukup untuk transaksi debit pada jenis Liability/Equity.`,
           );
         }
       }
     } else if (position === 'credit') {
-      // // Jika akun di posisi kredit, Liability dan Equity akan bertambah
-      // if (
-      //   account.account.type === AccountType.LIABILITY ||
-      //   account.account.type === AccountType.EQUITY
-      // ) {
-      //   if (account.balance + amount < 0) {
-      //     throw new Error(
-      //       `Saldo akun ${account.name} tidak cukup untuk transaksi kredit.`,
-      //     );
-      //   }
-      // }
       // Jika akun di posisi kredit, Asset dan Expense akan berkurang
       if (
         account.account.type === AccountType.ASSET ||
         account.account.type === AccountType.EXPENSE
       ) {
         if (account.balance - amount < 0) {
-          throw new Error(
+          throw new BadRequestException(
             `Saldo akun ${account.name} tidak cukup untuk transaksi kredit pada jenis Asset/Expense.`,
           );
         }
