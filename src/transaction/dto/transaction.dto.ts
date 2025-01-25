@@ -6,17 +6,48 @@ import {
   IsOptional,
   IsArray,
   IsDate,
+  IsPostalCode,
+  IsPhoneNumber,
+  IsInt,
+  Min,
+  ValidateNested,
 } from 'class-validator';
 
-export class TransactionDTO {
-  @IsNumber()
-  @IsNotEmpty()
-  originWalletId: number;
+export class AddressDTO {
+  @IsString()
+  recipientName: string;
 
-  @IsNumber()
+  @IsString()
+  addressLine1: string;
+
   @IsOptional()
-  destinationWalletId: number;
+  @IsString()
+  addressLine2?: string;
 
+  @IsString()
+  city: string;
+
+  @IsString()
+  state: string;
+
+  @IsPostalCode('any')
+  postalCode: string;
+
+  @IsPhoneNumber() // Menggunakan format telepon global
+  phoneNumber: string;
+}
+
+export class OrderDTO {
+  @IsInt()
+  @Min(1)
+  productId: number; // ID produk, harus integer dan minimal 1
+
+  @IsInt()
+  @Min(1)
+  quantity: number; // Jumlah produk, harus integer dan minimal 1
+}
+
+export class TransactionDTO {
   @IsNumber()
   @IsNotEmpty()
   transactionTypeId: number;
@@ -27,19 +58,31 @@ export class TransactionDTO {
 
   @IsString()
   @IsOptional()
-  description?: string;
+  note?: string;
 
+  @IsNotEmpty()
   @IsNumber()
-  @IsOptional()
-  storeId?: number;
+  debitAccountId: number;
 
+  @IsNotEmpty()
   @IsNumber()
-  @IsOptional()
-  financialPartyId?: number;
+  creditAccountId: number;
 
   @IsNumber()
   @IsOptional()
   customerId?: number;
+
+  @IsNumber()
+  @IsOptional()
+  debtorId?: number;
+
+  @IsNumber()
+  @IsOptional()
+  creditorId?: number;
+
+  @IsNumber()
+  @IsOptional()
+  storeId?: number;
 
   @IsOptional()
   @IsDate() // Memvalidasi bahwa string tersebut memiliki format ISO8601
@@ -47,21 +90,13 @@ export class TransactionDTO {
   dueDate?: Date; // Menerima string sebagai dueDate
 
   @IsOptional()
-  address?: {
-    recipientName: string;
-    addressLine1: string;
-    addressLine2?: string;
-    city: string;
-    state: string;
-    postalCode: string;
-    phoneNumber: string;
-  };
+  @ValidateNested()
+  @Type(() => AddressDTO)
+  address?: AddressDTO;
 
-  // Details hanya berisi ID produk dan kuantitas
   @IsArray()
   @IsOptional()
-  details?: {
-    productId: number; // ID produk
-    quantity: number; // Jumlah produk
-  }[];
+  @ValidateNested({ each: true })
+  @Type(() => OrderDTO)
+  orders?: OrderDTO[];
 }

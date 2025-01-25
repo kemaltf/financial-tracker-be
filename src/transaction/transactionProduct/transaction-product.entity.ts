@@ -4,16 +4,19 @@ import {
   PrimaryGeneratedColumn,
   Column,
   ManyToOne,
-  CreateDateColumn,
-  UpdateDateColumn,
+  JoinColumn,
 } from 'typeorm';
 
-@Entity('transaction_details')
-export class TransactionDetail {
+@Entity('transaction_order')
+export class TransactionOrder {
   @PrimaryGeneratedColumn()
   id: number;
 
-  @ManyToOne(() => Transaction, (transaction) => transaction.details)
+  @ManyToOne(() => Transaction, (transaction) => transaction.transactionOrder, {
+    onDelete: 'CASCADE',
+    orphanedRowAction: 'delete',
+  })
+  @JoinColumn({ name: 'transaction_id' })
   transaction: Transaction;
 
   // Informasi Produk saat Transaksi
@@ -34,10 +37,4 @@ export class TransactionDetail {
 
   @Column('decimal', { precision: 10, scale: 2 })
   totalPrice: number; // Total setelah diskon
-
-  @CreateDateColumn()
-  createdAt: Date;
-
-  @UpdateDateColumn()
-  updatedAt: Date;
 }

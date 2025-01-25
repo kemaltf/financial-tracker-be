@@ -3,19 +3,24 @@ import {
   Entity,
   PrimaryGeneratedColumn,
   Column,
-  CreateDateColumn,
-  UpdateDateColumn,
   OneToOne,
   JoinColumn,
 } from 'typeorm';
 
-@Entity('transaction_address')
-export class TransactionAddress {
+@Entity('transaction_contact')
+export class TransactionContact {
   @PrimaryGeneratedColumn()
   id: number;
 
-  @OneToOne(() => Transaction, (transaction) => transaction.address)
-  @JoinColumn() // Menambahkan JoinColumn untuk relasi OneToOne
+  @OneToOne(
+    () => Transaction,
+    (transaction) => transaction.transactionContact,
+    {
+      onDelete: 'CASCADE',
+      orphanedRowAction: 'delete',
+    },
+  )
+  @JoinColumn({ name: 'transaction_contact_id' }) // Menambahkan JoinColumn untuk menghubungkan dengan kolom yang benar
   transaction: Transaction;
 
   @Column('varchar', { length: 255 })
@@ -38,10 +43,4 @@ export class TransactionAddress {
 
   @Column('varchar', { length: 20 })
   phoneNumber: string;
-
-  @CreateDateColumn()
-  createdAt: Date;
-
-  @UpdateDateColumn()
-  updatedAt: Date;
 }

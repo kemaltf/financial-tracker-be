@@ -1,12 +1,5 @@
-import { AccountingEntry } from 'src/accountingEntry/accounting_entry.entity';
-import {
-  Entity,
-  PrimaryGeneratedColumn,
-  Column,
-  OneToMany,
-  CreateDateColumn,
-  UpdateDateColumn,
-} from 'typeorm';
+import { Column, Entity, OneToMany, PrimaryGeneratedColumn } from 'typeorm';
+import { SubAccount } from './sub-account.entity';
 
 export enum AccountType {
   ASSET = 'ASSET',
@@ -16,32 +9,29 @@ export enum AccountType {
   EQUITY = 'EQUITY',
 }
 
-@Entity('accounts')
+export enum BalanceImpactSide {
+  DEBIT = 'DEBIT',
+  CREDIT = 'CREDIT',
+}
+
+@Entity('account')
 export class Account {
   @PrimaryGeneratedColumn()
   id: number;
 
-  @Column({ unique: true })
-  code: string; // Kode akun, misalnya "101", "201", dll.
-
-  @Column({ type: 'varchar', length: 100, unique: true })
-  name: string; // Nama akun, misalnya "Kas", "Pendapatan", "Biaya Operasional"
-
   @Column({
     type: 'enum',
     enum: AccountType,
+    unique: true,
   })
-  type: AccountType;
+  type: AccountType; // Jenis akun seperti ASSET, LIABILITY, REVENUE, dll.
 
-  @Column({ type: 'varchar', length: 255, nullable: true })
-  description: string; // Deskripsi opsional
+  @Column({
+    type: 'enum',
+    enum: BalanceImpactSide,
+  })
+  normalBalance: BalanceImpactSide; // Menentukan sisi mana yang mempengaruhi saldo (DEBIT atau CREDIT)
 
-  @OneToMany(() => AccountingEntry, (entry) => entry.account)
-  entries: AccountingEntry[];
-
-  @CreateDateColumn({ type: 'timestamp' })
-  created_at: Date;
-
-  @UpdateDateColumn({ type: 'timestamp' })
-  updated_at: Date;
+  @OneToMany(() => SubAccount, (subAccount) => subAccount.account)
+  subAccounts: SubAccount[];
 }
