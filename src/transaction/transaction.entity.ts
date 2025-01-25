@@ -55,15 +55,15 @@ export class Transaction {
   // TRANSACTION CONTACT INFORMATION (WE WILL WRITE TRANSACTION ADDRESS SEPARATELY)
   @OneToOne(() => TransactionContact, (contact) => contact.transaction, {
     onDelete: 'CASCADE',
+    orphanedRowAction: 'delete',
   }) // Menambahkan cascade delete
-  @JoinColumn({ name: 'transaction_contact_id' }) // Menambahkan JoinColumn untuk menghubungkan dengan kolom yang benar
   transactionContact: TransactionContact;
 
   // IF TRANSACTION RELATED TO DEBT OR RECEIVABLE
   @ManyToOne(
     () => DebtsAndReceivables,
     (debtsAndReceivables) => debtsAndReceivables.transaction,
-    { onDelete: 'CASCADE' }, // Menambahkan cascade delete
+    // { onDelete: 'CASCADE' }, // Menambahkan cascade delete
   )
   @JoinColumn({ name: 'debs_and_receivables_id' })
   debtsAndReceivables: DebtsAndReceivables;
@@ -72,7 +72,6 @@ export class Transaction {
   @OneToMany(
     () => TransactionOrder,
     (transactionOrder) => transactionOrder.transaction,
-    { onDelete: 'CASCADE' }, // Menambahkan cascade delete
   )
   transactionOrder: TransactionOrder[];
 
@@ -84,7 +83,7 @@ export class Transaction {
   // IF TRANSACTION RELATED TO CUSTOMER
   @ManyToOne(() => FinancialParty, (customer) => customer.transactions, {
     nullable: true,
-    onDelete: 'CASCADE', // Menambahkan cascade delete
+    // onDelete: 'CASCADE', // Menambahkan cascade delete
   })
   @JoinColumn({ name: 'customer_id' })
   customer: FinancialParty;
