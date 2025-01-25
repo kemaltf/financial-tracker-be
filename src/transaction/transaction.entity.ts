@@ -18,7 +18,6 @@ import {
 import { ColumnNumericTransformer } from '@app/common/transformer/column-numeric.transformer';
 import { DebtsAndReceivables } from '@app/debt-receivable/debts-and-receivables.entity';
 import { SubAccount } from '@app/account/sub-account.entity';
-
 @Entity('transactions')
 export class Transaction {
   @PrimaryGeneratedColumn()
@@ -27,6 +26,7 @@ export class Transaction {
   @ManyToOne(
     () => TransactionType,
     (transactionType) => transactionType.transactions,
+    { onDelete: 'CASCADE' }, // Menambahkan cascade delete
   )
   @JoinColumn({ name: 'transaction_type_id' })
   transactionType: TransactionType;
@@ -44,50 +44,54 @@ export class Transaction {
   @Column({ type: 'text' })
   note: string;
 
-  @ManyToOne(() => SubAccount, { eager: true }) // Relasi ke entitas Account
+  @ManyToOne(() => SubAccount, { eager: true, onDelete: 'CASCADE' }) // Menambahkan cascade delete
   @JoinColumn({ name: 'debitAccountId' }) // Kolom foreign key untuk akun debit
   debitAccount: SubAccount;
 
-  @ManyToOne(() => SubAccount, { eager: true }) // Relasi ke entitas Account
+  @ManyToOne(() => SubAccount, { eager: true, onDelete: 'CASCADE' }) // Menambahkan cascade delete
   @JoinColumn({ name: 'creditAccountId' }) // Kolom foreign key untuk akun kredit
   creditAccount: SubAccount;
 
   // TRANSACTION CONTACT INFORMATION (WE WILL WRITE TRANSACTION ADDRESS SEPARATELY)
-  // FOR EXAMPLE: THE CUSTOMER WILL BUY SOMETHING, WE WILL WRITE THE CUSTOMER INFORMATION HERE
-  // SO THE INFORMATION WILL BE STORED IN CONTACT TABLE AND WILL NOT UPDATE IF THE CUSTOMER INFORMATION IS UPDATED
-  @OneToOne(() => TransactionContact, (contact) => contact.transaction)
-  @JoinColumn({ name: 'transaction_contact_id' }) // Menambahkan JoinColumn untuk menghubungkan dengan kolom yang benar
+  @OneToOne(() => TransactionContact, (contact) => contact.transaction, {
+    onDelete: 'CASCADE',
+    orphanedRowAction: 'delete',
+  }) // Menambahkan cascade delete
   transactionContact: TransactionContact;
 
   // IF TRANSACTION RELATED TO DEBT OR RECEIVABLE
   @ManyToOne(
     () => DebtsAndReceivables,
     (debtsAndReceivables) => debtsAndReceivables.transaction,
+    // { onDelete: 'CASCADE' }, // Menambahkan cascade delete
   )
-  @JoinColumn({ name: 'debs_and_receivables_id' }) // Kolom foreign key untuk
+  @JoinColumn({ name: 'debs_and_receivables_id' })
   debtsAndReceivables: DebtsAndReceivables;
 
   // IF TRANSACTION RELATED TO PRODUCT
   @OneToMany(
     () => TransactionOrder,
-    (transactionProduct) => transactionProduct.transaction,
+    (transactionOrder) => transactionOrder.transaction,
   )
-  transactionProduct: TransactionOrder[];
+  transactionOrder: TransactionOrder[];
 
   // WHO CREATE THIS TRANSACTION
-  @ManyToOne(() => User, (user) => user.Transactions)
+  @ManyToOne(() => User, (user) => user.Transactions, { onDelete: 'CASCADE' }) // Menambahkan cascade delete
   @JoinColumn({ name: 'user_id' })
   user: User;
 
   // IF TRANSACTION RELATED TO CUSTOMER
   @ManyToOne(() => FinancialParty, (customer) => customer.transactions, {
     nullable: true,
+    // onDelete: 'CASCADE', // Menambahkan cascade delete
   })
   @JoinColumn({ name: 'customer_id' })
   customer: FinancialParty;
 
   // IF TRANSACTION RELATED TO STORE
-  @ManyToOne(() => Store, (store) => store.transactions)
+  @ManyToOne(() => Store, (store) => store.transactions, {
+    onDelete: 'CASCADE',
+  }) // Menambahkan cascade delete
   store: Store;
 
   @CreateDateColumn({ type: 'timestamp', name: 'created_at' })

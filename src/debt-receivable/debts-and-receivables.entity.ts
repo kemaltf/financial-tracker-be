@@ -35,6 +35,7 @@ export class DebtsAndReceivables {
   @OneToMany(
     () => Transaction,
     (transaction) => transaction.debtsAndReceivables,
+    { onDelete: 'CASCADE' }, // Menambahkan cascade delete
   )
   transaction: Transaction[];
 }

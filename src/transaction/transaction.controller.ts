@@ -1,4 +1,12 @@
-import { Controller, Post, Body, Get, Patch, Param } from '@nestjs/common';
+import {
+  Controller,
+  Post,
+  Body,
+  Get,
+  Patch,
+  Param,
+  Delete,
+} from '@nestjs/common';
 import { TransactionService } from './transaction.service';
 import { TransactionDTO } from './dto/transaction.dto';
 import { GetUser } from '@app/common/decorators/get-user.decorator';
@@ -45,5 +53,11 @@ export class TransactionController {
       user.id,
       transactionDTO,
     );
+  }
+
+  @Delete(':id')
+  async remove(@Param('id') id: number, @GetUser() user: User) {
+    console.log('kesini', user);
+    return this.transactionService.deleteTransaction(id, user);
   }
 }
