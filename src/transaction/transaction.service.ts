@@ -823,4 +823,308 @@ export class TransactionService {
     // Mengembalikan transaksi yang dianggap anomali
     return anomalies;
   }
+
+  /**
+   * Get transaction history for a user
+   */
+  async getTransactionHistory(
+    userId: string,
+    startMonth?: string,
+    endMonth?: string,
+    accountId?: number,
+  ): Promise<any[]> {
+    const queryBuilder = this.transactionRepository
+      .createQueryBuilder('transaction')
+      .leftJoinAndSelect('transaction.transactionType', 'transactionType')
+      .leftJoinAndSelect('transaction.debitAccount', 'debitAccount')
+      .leftJoinAndSelect('transaction.creditAccount', 'creditAccount')
+      .leftJoinAndSelect('transaction.transactionContact', 'transactionContact')
+      .leftJoinAndSelect('transaction.transactionOrder', 'transactionOrder')
+      .leftJoinAndSelect('transaction.user', 'user')
+      .where('user.id = :userId', { userId });
+
+    if (startMonth) {
+      queryBuilder.andWhere('transaction.created_at >= :startMonth', {
+        startMonth,
+      });
+    }
+
+    if (endMonth) {
+      queryBuilder.andWhere('transaction.created_at <= :endMonth', {
+        endMonth,
+      });
+    }
+
+    if (accountId) {
+      queryBuilder.andWhere(
+        '(transaction.debitAccountId = :accountId OR transaction.creditAccountId = :accountId)',
+        { accountId },
+      );
+    }
+
+    queryBuilder.orderBy('transaction.created_at', 'DESC');
+
+    const transactions = await queryBuilder.getMany();
+
+    return transactions.map((transaction) => ({
+      id: transaction.id,
+      note: transaction.note,
+      createdAt: transaction.created_at,
+      transactionType: transaction.transactionType.name,
+      amount: transaction.amount,
+      debit: {
+        code: transaction.debitAccount.code,
+        account: transaction.debitAccount.name,
+        balance: transaction.debitAccount.balance,
+      },
+      credit: {
+        code: transaction.creditAccount.code,
+        account: transaction.creditAccount.name,
+        balance: transaction.creditAccount.balance,
+      },
+    }));
+  }
+
+  /**
+   * Get transaction detail by ID
+   */
+  async getTransactionDetail(transactionId: number): Promise<Transaction> {
+    const transaction = await this.transactionRepository.findOne({
+      where: { id: transactionId },
+      relations: [
+        'transactionType',
+        'debitAccount',
+        'creditAccount',
+        'transactionContact',
+        'transactionOrder',
+      ],
+    });
+
+    if (!transaction) {
+      throw new NotFoundException(
+        `Transaction with ID ${transactionId} not found.`,
+      );
+    }
+
+    return transaction;
+  }
+
+  /**
+   * Get Ledger (Buku Besar)
+   */
+  async getLedger(
+    startMonth?: string,
+    endMonth?: string,
+    accountId?: number,
+  ): Promise<any> {
+    const queryBuilder = this.transactionRepository
+      .createQueryBuilder('transaction')
+      .leftJoinAndSelect('transaction.transactionType', 'transactionType')
+      .leftJoinAndSelect('transaction.debitAccount', 'debitAccount')
+      .leftJoinAndSelect('debitAccount.account', 'debitAccountType')
+      .leftJoinAndSelect('transaction.creditAccount', 'creditAccount')
+      .leftJoinAndSelect('creditAccount.account', 'creditAccountType')
+      .orderBy('transaction.created_at', 'ASC');
+
+    if (startMonth) {
+      queryBuilder.andWhere('transaction.created_at >= :startMonth', {
+        startMonth,
+      });
+    }
+
+    if (endMonth) {
+      queryBuilder.andWhere('transaction.created_at <= :endMonth', {
+        endMonth,
+      });
+    }
+
+    if (accountId) {
+      queryBuilder.andWhere(
+        '(transaction.debitAccountId = :accountId OR transaction.creditAccountId = :accountId)',
+        { accountId },
+      );
+    }
+
+    const transactions = await queryBuilder.getMany();
+
+    console.log(transactions);
+    const ledger = {};
+
+    transactions.forEach((transaction) => {
+      const debitAccountName = transaction.debitAccount.name;
+      const creditAccountName = transaction.creditAccount.name;
+
+      if (!ledger[debitAccountName]) {
+        ledger[debitAccountName] = [];
+      }
+      if (!ledger[creditAccountName]) {
+        ledger[creditAccountName] = [];
+      }
+
+      ledger[debitAccountName].push({
+        date: transaction.created_at,
+        description: transaction.note,
+        debit: transaction.amount,
+        credit: 0,
+        balance: 0, // Placeholder for balance calculation
+        normalBalance: transaction.debitAccount.account.normalBalance,
+      });
+
+      ledger[creditAccountName].push({
+        date: transaction.created_at,
+        description: transaction.note,
+        debit: 0,
+        credit: transaction.amount,
+        balance: 0, // Placeholder for balance calculation
+        normalBalance: transaction.creditAccount.account.normalBalance,
+      });
+    });
+
+    // Calculate balance for each account
+    Object.keys(ledger).forEach((accountName) => {
+      let balance = 0;
+      ledger[accountName] = ledger[accountName].map((entry) => {
+        if (entry.normalBalance === 'DEBIT') {
+          balance += entry.debit - entry.credit;
+        } else {
+          balance += entry.credit - entry.debit;
+        }
+        return { ...entry, balance };
+      });
+    });
+
+    return ledger;
+  }
+  /**
+   * Get Trial Balance (Neraca Saldo)
+   */
+  async getTrialBalance() {
+    const accounts = await this.dataSource.query(`
+      SELECT
+        account.name,
+        SUM(CASE WHEN t.debitAccountId = account.id THEN t.amount ELSE 0 END) AS debit,
+        SUM(CASE WHEN t.creditAccountId = account.id THEN t.amount ELSE 0 END) AS credit
+      FROM sub_accounts account
+      LEFT JOIN transactions t ON t.debitAccountId = account.id OR t.creditAccountId = account.id
+      GROUP BY account.name
+    `);
+
+    let totalDebit = 0;
+    let totalCredit = 0;
+
+    const trialBalance = accounts.map((account) => {
+      totalDebit += parseFloat(account.debit);
+      totalCredit += parseFloat(account.credit);
+      return {
+        name: account.name,
+        debit: parseFloat(account.debit),
+        credit: parseFloat(account.credit),
+      };
+    });
+
+    return {
+      trialBalance,
+      totals: {
+        totalDebit,
+        totalCredit,
+      },
+    };
+  }
+
+  /**
+   * Get Income Statement (Laporan Laba Rugi)
+   */
+  async getIncomeStatement(): Promise<any> {
+    const income = await this.dataSource.query(`
+      SELECT
+        SUM(amount) AS totalIncome
+      FROM transactions
+      WHERE transaction_type_id = (SELECT id FROM transaction_types WHERE name = 'Pemasukan')
+    `);
+
+    const expenses = await this.dataSource.query(`
+      SELECT
+        SUM(amount) AS totalExpenses
+      FROM transactions
+      WHERE transaction_type_id = (SELECT id FROM transaction_types WHERE name = 'Pengeluaran')
+    `);
+
+    return {
+      totalIncome: income[0].totalIncome,
+      totalExpenses: expenses[0].totalExpenses,
+      netIncome: income[0].totalIncome - expenses[0].totalExpenses,
+    };
+  }
+
+  /**
+   * Get Balance Sheet (Neraca)
+   */
+  async getBalanceSheet(): Promise<any> {
+    const assets = await this.dataSource.query(`
+      SELECT
+        account.name,
+        SUM(CASE WHEN t.debitAccountId = account.id THEN t.amount ELSE 0 END) -
+        SUM(CASE WHEN t.creditAccountId = account.id THEN t.amount ELSE 0 END) AS total
+      FROM sub_accounts account
+      LEFT JOIN transactions t ON t.debitAccountId = account.id OR t.creditAccountId = account.id
+      LEFT JOIN account a ON account.account_id = a.id
+      WHERE a.type = 'ASSET'
+      GROUP BY account.name
+    `);
+
+    const liabilities = await this.dataSource.query(`
+     SELECT
+      account.name,
+      SUM(CASE WHEN t.creditAccountId = account.id THEN t.amount ELSE 0 END) -
+      SUM(CASE WHEN t.debitAccountId = account.id THEN t.amount ELSE 0 END) AS total
+    FROM sub_accounts account
+    LEFT JOIN transactions t ON t.debitAccountId = account.id OR t.creditAccountId = account.id
+    LEFT JOIN account a ON account.account_id = a.id
+    WHERE a.type = 'LIABILITY'
+    GROUP BY account.name
+    `);
+
+    const equity = await this.dataSource.query(`
+     SELECT
+      account.name,
+      SUM(CASE WHEN t.creditAccountId = account.id THEN t.amount ELSE 0 END) -
+      SUM(CASE WHEN t.debitAccountId = account.id THEN t.amount ELSE 0 END) AS total
+    FROM sub_accounts account
+    LEFT JOIN transactions t ON t.debitAccountId = account.id OR t.creditAccountId = account.id
+    LEFT JOIN account a ON account.account_id = a.id
+    WHERE a.type = 'EQUITY'
+    GROUP BY account.name
+    `);
+
+    return {
+      assets,
+      liabilities,
+      equity,
+    };
+  }
+
+  /**
+   * Get Cash Flow Statement (Laporan Arus Kas)
+   */
+  async getCashFlowStatement(): Promise<any> {
+    const cashInflow = await this.dataSource.query(`
+      SELECT
+      SUM(amount) AS totalInflow
+      FROM transactions
+      WHERE transaction_type_id = (SELECT id FROM transaction_types tt WHERE name = 'Pemasukan')
+    `);
+
+    const cashOutflow = await this.dataSource.query(`
+      SELECT
+        SUM(amount) AS totalOutflow
+      FROM transactions
+      WHERE transaction_type_id = (SELECT id FROM transaction_types WHERE name = 'Pengeluaran')
+    `);
+
+    return {
+      totalInflow: cashInflow[0].totalInflow,
+      totalOutflow: cashOutflow[0].totalOutflow,
+      netCashFlow: cashInflow[0].totalInflow - cashOutflow[0].totalOutflow,
+    };
+  }
 }
