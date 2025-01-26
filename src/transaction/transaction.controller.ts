@@ -6,6 +6,7 @@ import {
   Patch,
   Param,
   Delete,
+  Query,
 } from '@nestjs/common';
 import { TransactionService } from './transaction.service';
 import { TransactionDTO } from './dto/transaction.dto';
@@ -22,6 +23,39 @@ export class TransactionController {
     @GetUser() user: User,
   ) {
     return this.transactionService.createTransaction(user.id, transactionData);
+  }
+
+  @Get('ledger')
+  async getLedger(
+    @Query('startMonth') startMonth?: string,
+    @Query('endMonth') endMonth?: string,
+    @Query('accountId') accountId?: number,
+  ) {
+    return this.transactionService.getLedger(startMonth, endMonth, accountId);
+  }
+
+  @Get('trial-balance')
+  async getTrialBalance() {
+    console.log('first');
+    return this.transactionService.getTrialBalance();
+  }
+  @Get('income-statement')
+  async getIncomeStatement() {
+    return this.transactionService.getIncomeStatement();
+  }
+  @Get('balance-sheet')
+  async getBalanceSheet() {
+    return this.transactionService.getBalanceSheet();
+  }
+
+  @Get('cash-flow-statement')
+  async getCashFlowStatement(): Promise<any> {
+    return this.transactionService.getCashFlowStatement();
+  }
+
+  @Get(':transactionId')
+  async getTransactionDetail(@Param('transactionId') transactionId: number) {
+    return this.transactionService.getTransactionDetail(transactionId);
   }
 
   @Get('financial-summary')
@@ -59,5 +93,20 @@ export class TransactionController {
   async remove(@Param('id') id: number, @GetUser() user: User) {
     console.log('kesini', user);
     return this.transactionService.deleteTransaction(id, user);
+  }
+
+  @Get()
+  async getTransactionHistory(
+    @GetUser() user: User,
+    @Query('startMonth') startMonth?: string,
+    @Query('endMonth') endMonth?: string,
+    @Query('accountId') accountId?: number,
+  ) {
+    return this.transactionService.getTransactionHistory(
+      user.id,
+      startMonth,
+      endMonth,
+      accountId,
+    );
   }
 }
