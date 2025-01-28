@@ -25,11 +25,15 @@ export class StoreService {
     return this.storeRepository.save(store);
   }
 
-  async findAll(username: string): Promise<Store[]> {
-    return this.storeRepository.find({
+  async findAll(username: string): Promise<{ value: number; label: string }[]> {
+    const stores = await this.storeRepository.find({
       where: { owner: username },
-      relations: ['products', 'transactions', 'transactionLogs'],
     });
+
+    return stores.map((store) => ({
+      value: store.id,
+      label: store.name,
+    }));
   }
 
   async findOne(username: string, id: number): Promise<Store> {

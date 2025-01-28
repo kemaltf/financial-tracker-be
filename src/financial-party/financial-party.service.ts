@@ -3,7 +3,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { FinancialPartyCreateDto } from './dto/create-financial-party.dto';
 import { UpdateCustomerDto } from './dto/update-financial-party.dto';
-import { FinancialParty } from './entity/financial-party.entity';
+import { FinancialParty, Role } from './entity/financial-party.entity';
 
 @Injectable()
 export class CustomerService {
@@ -12,8 +12,15 @@ export class CustomerService {
     private readonly financialPartyRepository: Repository<FinancialParty>,
   ) {}
 
-  async findAll(): Promise<FinancialParty[]> {
-    return this.financialPartyRepository.find();
+  async findAll(role?: Role): Promise<{ value: number; label: string }[]> {
+    const financialParties = role
+      ? await this.financialPartyRepository.find({ where: { role } })
+      : await this.financialPartyRepository.find();
+
+    return financialParties.map((party) => ({
+      value: party.id,
+      label: `${party.name} - (${party.email})`,
+    }));
   }
 
   async findOne(id: number): Promise<FinancialParty> {

@@ -7,19 +7,26 @@ import {
   Param,
   Body,
   ParseIntPipe,
+  Query,
+  BadRequestException,
 } from '@nestjs/common';
 import { CustomerService } from './financial-party.service';
 import { FinancialPartyCreateDto } from './dto/create-financial-party.dto';
 import { UpdateCustomerDto } from './dto/update-financial-party.dto';
-import { FinancialParty } from './entity/financial-party.entity';
+import { FinancialParty, Role } from './entity/financial-party.entity';
 
 @Controller('financial-party')
 export class CustomerController {
   constructor(private readonly financialPartyService: CustomerService) {}
 
   @Get()
-  findAll(): Promise<FinancialParty[]> {
-    return this.financialPartyService.findAll();
+  findAll(
+    @Query('role') role?: Role,
+  ): Promise<{ value: number; label: string }[]> {
+    if (role && !Object.values(Role).includes(role)) {
+      throw new BadRequestException(`Invalid role: ${role}`);
+    }
+    return this.financialPartyService.findAll(role);
   }
 
   @Get(':id')
