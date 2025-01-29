@@ -35,7 +35,7 @@ export class Product {
 
   @Column({
     type: 'decimal',
-    precision: 12,
+    precision: 15,
     scale: 2,
     transformer: new ColumnNumericTransformer(),
   })

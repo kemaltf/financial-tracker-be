@@ -1,3 +1,4 @@
+import { ColumnNumericTransformer } from '@app/common/transformer/column-numeric.transformer';
 import { Transaction } from 'src/transaction/transaction.entity';
 import {
   Entity,
@@ -26,7 +27,13 @@ export class TransactionOrder {
   @Column()
   productSku: string; // SKU produk saat transaksi
 
-  @Column('decimal', { precision: 10, scale: 2 })
+  @Column({
+    type: 'decimal',
+    precision: 15,
+    scale: 2,
+    default: 0,
+    transformer: new ColumnNumericTransformer(),
+  })
   unitPrice: number; // Harga produk saat transaksi
 
   @Column('int')
@@ -35,6 +42,12 @@ export class TransactionOrder {
   @Column('decimal', { precision: 10, scale: 2, nullable: true })
   discount: number; // Diskon yang diberikan (opsional)
 
-  @Column('decimal', { precision: 10, scale: 2 })
+  @Column({
+    type: 'decimal',
+    precision: 15,
+    scale: 2,
+    default: 0,
+    transformer: new ColumnNumericTransformer(),
+  })
   totalPrice: number; // Total setelah diskon
 }

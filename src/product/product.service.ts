@@ -1,4 +1,5 @@
 import {
+  BadRequestException,
   ConflictException,
   HttpException,
   HttpStatus,
@@ -219,16 +220,24 @@ export class ProductService {
     limit = 10,
     sortBy = 'name',
     sortDirection: 'ASC' | 'DESC' = 'ASC',
+    storeId: number,
     filters: Partial<Product> = {},
   ): Promise<{
-    data: Product[];
+    data: {
+      value: number;
+      label: string;
+      sku: string;
+      description: string;
+      stock: string;
+      price: number;
+    }[];
     total: number;
     currentPage: number;
     totalPages: number;
   }> {
     // Calculate offset
     const offset = (page - 1) * limit;
-    console.log(offset);
+
     // Check if sortBy is a valid column
     const sortableColumns = ['name', 'price', 'stock', 'createdAt'];
     if (!sortableColumns.includes(sortBy)) {
@@ -237,25 +246,44 @@ export class ProductService {
       );
     }
 
+    const invalidFilters: string[] = [];
     // Filter only valid fields for "where" clause
+    const allowedFilters = ['name', 'sku'];
     const validFilters: Partial<Record<keyof Product, any>> = {};
     for (const [key, value] of Object.entries(filters)) {
-      if (key in Product.prototype && value !== undefined) {
+      if (allowedFilters.includes(key) && value !== undefined) {
         validFilters[key as keyof Product] = value;
+      } else {
+        invalidFilters.push(key);
       }
+    }
+
+    if (invalidFilters.length > 0) {
+      throw new BadRequestException(
+        `Invalid filter(s): ${invalidFilters.join(', ')}. Allowed filters: ${allowedFilters.join(', ')}`,
+      );
     }
 
     // Build query with relations, filters, sorting, and pagination
     const [data, total] = await this.productRepository.findAndCount({
-      where: validFilters,
+      where: { ...validFilters, store: { id: storeId } },
       relations: ['categories', 'store', 'variants', 'images'],
       order: { [sortBy]: sortDirection },
       take: limit,
       skip: offset,
     });
 
+    const mappedData = data.map((product) => ({
+      value: product.id,
+      label: product.name,
+      sku: product.sku,
+      description: product.description,
+      stock: product.sku,
+      price: product.price,
+      image: product.images[0],
+    }));
     return {
-      data,
+      data: mappedData,
       total,
       currentPage: page,
       totalPages: Math.ceil(total / limit),

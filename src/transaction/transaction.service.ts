@@ -727,6 +727,7 @@ export class TransactionService {
         );
 
       const totalPrice = product.price * detail.quantity;
+      console.log('totalPrice===================', totalPrice);
       const transactionDetail = this.transactionOrderRepository.create({
         transaction,
         productName: product.name,
