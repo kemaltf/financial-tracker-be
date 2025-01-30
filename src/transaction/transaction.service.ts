@@ -842,6 +842,7 @@ export class TransactionService {
       .leftJoinAndSelect('transaction.transactionContact', 'transactionContact')
       .leftJoinAndSelect('transaction.transactionOrder', 'transactionOrder')
       .leftJoinAndSelect('transaction.user', 'user')
+      .leftJoinAndSelect('transaction.store', 'store')
       .where('user.id = :userId', { userId });
 
     if (startMonth) {
@@ -873,6 +874,8 @@ export class TransactionService {
       createdAt: transaction.created_at,
       transactionType: transaction.transactionType.name,
       amount: transaction.amount,
+      store: transaction.store.name,
+      user: transaction.user.name,
       debit: {
         code: transaction.debitAccount.code,
         account: transaction.debitAccount.name,

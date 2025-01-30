@@ -228,7 +228,7 @@ export class ProductService {
       label: string;
       sku: string;
       description: string;
-      stock: string;
+      stock: number;
       price: number;
     }[];
     total: number;
@@ -278,9 +278,10 @@ export class ProductService {
       label: product.name,
       sku: product.sku,
       description: product.description,
-      stock: product.sku,
+      stock: product.stock,
       price: product.price,
-      image: product.images[0],
+      image: product.images[0]?.url,
+      id: product.id,
     }));
     return {
       data: mappedData,
