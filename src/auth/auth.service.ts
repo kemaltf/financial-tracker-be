@@ -43,10 +43,13 @@ export class AuthService {
       throw new UnauthorizedException('Invalid credentials');
     }
 
+    // Tentukan masa kedaluwarsa berdasarkan pilihan "Remember Me"
+    const refreshTokenExpiration = dto?.rememberMe ? '7d' : '1h'; // nanti ubah yang 7d tadi
+
     const payload = { sub: user.id, username: user.username };
     const accessToken = await this.jwtService.signAsync(payload);
     const refreshToken = await this.jwtService.signAsync(payload, {
-      expiresIn: '7d',
+      expiresIn: refreshTokenExpiration,
     });
 
     const atExp = this.jwtService.decode(accessToken).exp;

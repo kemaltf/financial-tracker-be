@@ -53,15 +53,18 @@ export class TransactionController {
     return this.transactionService.getCashFlowStatement();
   }
 
-  @Get(':transactionId')
-  async getTransactionDetail(@Param('transactionId') transactionId: number) {
-    return this.transactionService.getTransactionDetail(transactionId);
-  }
-
   @Get('financial-summary')
-  async getFinancialSummary(@GetUser() user: User) {
+  async getFinancialSummary(
+    @GetUser() user: User,
+    @Query('startMonth') startMonth?: string,
+    @Query('endMonth') endMonth?: string,
+  ) {
     console.log(user.id);
-    return this.transactionService.getFinancialSummary();
+    return this.transactionService.getFinancialSummary({
+      userId: user.id,
+      startMonth: startMonth,
+      endMonth: endMonth,
+    });
   }
 
   @Get('monthly-trends')
@@ -100,13 +103,24 @@ export class TransactionController {
     @GetUser() user: User,
     @Query('startMonth') startMonth?: string,
     @Query('endMonth') endMonth?: string,
-    @Query('accountId') accountId?: number,
+    @Query('page') page = 1,
+    @Query('limit') limit = 10,
+    @Query('sortBy') sortBy = 'createdAt',
+    @Query('sortDirection') sortDirection: 'ASC' | 'DESC' = 'ASC',
   ) {
-    return this.transactionService.getTransactionHistory(
-      user.id,
+    return this.transactionService.getTransactionHistory({
+      userId: user.id,
       startMonth,
       endMonth,
-      accountId,
-    );
+      page,
+      limit,
+      sortBy,
+      sortDirection,
+    });
+  }
+
+  @Get(':transactionId')
+  async getTransactionDetail(@Param('transactionId') transactionId: number) {
+    return this.transactionService.getTransactionDetail(transactionId);
   }
 }

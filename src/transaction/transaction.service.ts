@@ -23,6 +23,21 @@ import { HandleErrors } from '@app/common/decorators';
 import { AccountType, BalanceImpactSide } from '@app/account/account.entity';
 import { User } from '@app/user/user.entity';
 
+type GetTransactionHistoryParamType = {
+  userId: string;
+  startMonth?: string;
+  endMonth?: string;
+  page: number;
+  limit: number;
+  sortBy: string;
+  sortDirection: 'ASC' | 'DESC';
+};
+type GetFinancialSummaryParamType = {
+  userId: string;
+  startMonth?: string;
+  endMonth?: string;
+};
+
 @Injectable()
 export class TransactionService {
   constructor(
@@ -727,7 +742,6 @@ export class TransactionService {
         );
 
       const totalPrice = product.price * detail.quantity;
-      console.log('totalPrice===================', totalPrice);
       const transactionDetail = this.transactionOrderRepository.create({
         transaction,
         productName: product.name,
@@ -740,50 +754,125 @@ export class TransactionService {
     }
   }
 
-  async getFinancialSummary() {
-    const totalIncome = await this.transactionRepository.sum('amount', {
-      transactionType: { name: 'Pemasukan' },
-    });
-    const totalExpense = await this.transactionRepository.sum('amount', {
-      transactionType: { name: 'Pengeluaran' },
-    });
-    const totalDebt = await this.transactionRepository.sum('amount', {
-      transactionType: { name: 'Hutang' },
-    });
-    const totalReceivables = await this.transactionRepository.sum('amount', {
-      transactionType: { name: 'Piutang' },
-    });
-    const totalInvestment = await this.transactionRepository.sum('amount', {
-      transactionType: { name: 'Tanam Modal' },
-    });
-    const totalWithdrawal = await this.transactionRepository.sum('amount', {
-      transactionType: { name: 'Tarik Modal' },
-    });
-    const totalTransfer = await this.transactionRepository.sum('amount', {
-      transactionType: { name: 'Transfer' },
-    });
-    const totalReceivablesIncome = await this.transactionRepository.sum(
-      'amount',
-      { transactionType: { name: 'Pemasukan Piutang' } },
-    );
-    const totalReceivablesExpense = await this.transactionRepository.sum(
-      'amount',
-      { transactionType: { name: 'Pengeluaran Piutang' } },
-    );
-    // const cashBalance = await this.walletRepository.sum('balance');
+  /**
+   * Get financial summary with optional filters
+   */
+  async getFinancialSummary({
+    startMonth,
+    endMonth,
+    userId,
+  }: GetFinancialSummaryParamType) {
+    const queryBuilder = this.transactionRepository
+      .createQueryBuilder('transaction')
+      .leftJoinAndSelect('transaction.transactionType', 'transactionType')
+      // .leftJoinAndSelect('transaction.debitAccount', 'debitAccount')
+      // .leftJoinAndSelect('transaction.creditAccount', 'creditAccount')
+      // .leftJoinAndSelect('transaction.transactionContact', 'transactionContact')
+      // .leftJoinAndSelect('transaction.transactionOrder', 'transactionOrder')
+      .leftJoinAndSelect('transaction.user', 'user')
+      .leftJoinAndSelect('transaction.store', 'store')
+      .where('user.id = :userId', { userId });
+
+    // Optional start and end date filters
+    if (startMonth) {
+      queryBuilder.andWhere('transaction.created_at >= :startMonth', {
+        startMonth,
+      });
+    }
+
+    if (endMonth) {
+      queryBuilder.andWhere('transaction.created_at <= :endMonth', {
+        endMonth,
+      });
+    }
+
+    const totalIncome = await queryBuilder
+      .andWhere('transactionType.name = :transactionType', {
+        transactionType: 'Pemasukan',
+      })
+      .select('SUM(transaction.amount)', 'totalIncome')
+      .getRawOne();
+
+    const totalExpense = await queryBuilder
+      .andWhere('transactionType.name = :transactionType', {
+        transactionType: 'Pengeluaran',
+      })
+      .select('SUM(transaction.amount)', 'totalExpense')
+      .getRawOne();
+
+    const totalDebt = await queryBuilder
+      .andWhere('transactionType.name = :transactionType', {
+        transactionType: 'Hutang',
+      })
+      .select('SUM(transaction.amount)', 'totalDebt')
+      .getRawOne();
+
+    const totalReceivables = await queryBuilder
+      .andWhere('transactionType.name = :transactionType', {
+        transactionType: 'Piutang',
+      })
+      .select('SUM(transaction.amount)', 'totalReceivables')
+      .getRawOne();
+
+    const totalInvestment = await queryBuilder
+      .andWhere('transactionType.name = :transactionType', {
+        transactionType: 'Tanam Modal',
+      })
+      .select('SUM(transaction.amount)', 'totalReceivables')
+      .getRawOne();
+
+    const totalWithdrawal = await queryBuilder
+      .andWhere('transactionType.name = :transactionType', {
+        transactionType: 'Tarik Modal',
+      })
+      .select('SUM(transaction.amount)', 'totalReceivables')
+      .getRawOne();
+
+    const totalTransfer = await queryBuilder
+      .andWhere('transactionType.name = :transactionType', {
+        transactionType: 'Transfer',
+      })
+      .select('SUM(transaction.amount)', 'totalReceivables')
+      .getRawOne();
+
+    const totalReceivablesIncome = await queryBuilder
+      .andWhere('transactionType.name = :transactionType', {
+        transactionType: 'Pemasukan Piutang',
+      })
+      .select('SUM(transaction.amount)', 'totalReceivables')
+      .getRawOne();
+
+    const totalReceivablesExpense = await queryBuilder
+      .andWhere('transactionType.name = :transactionType', {
+        transactionType: 'Pengeluaran Piutang',
+      })
+      .select('SUM(transaction.amount)', 'totalReceivables')
+      .getRawOne();
+
+    // Extract the result from raw query
+    const totalIncomeAmount = totalIncome?.totalIncome || 0;
+    const totalExpenseAmount = totalExpense?.totalExpense || 0;
+    const totalDebtAmount = totalDebt?.totalDebt || 0;
+    const totalReceivablesAmount = totalReceivables?.totalReceivables || 0;
+    const totalInvestmentAmount = totalInvestment?.totalInvestment || 0;
+    const totalWithdrawalAmount = totalWithdrawal?.totalWithdrawal || 0;
+    const totalTransferAmount = totalTransfer?.totalTransfer || 0;
+    const totalReceivablesIncomeAmount =
+      totalReceivablesIncome?.totalReceivablesIncome || 0;
+    const totalReceivablesExpenseAmount =
+      totalReceivablesExpense?.totalReceivablesExpense || 0;
 
     return {
-      totalIncome,
-      totalExpense,
-      totalDebt,
-      totalReceivables,
-      totalInvestment,
-      totalWithdrawal,
-      totalTransfer,
-      totalReceivablesIncome,
-      totalReceivablesExpense,
-      profitLoss: totalIncome - totalExpense,
-      // cashBalance,
+      totalIncome: Number(totalIncomeAmount),
+      totalExpense: Number(totalExpenseAmount),
+      totalDebt: Number(totalDebtAmount),
+      totalReceivables: Number(totalReceivablesAmount),
+      totalInvestment: Number(totalInvestmentAmount),
+      totalWithdrawal: Number(totalWithdrawalAmount),
+      totalTransfer: Number(totalTransferAmount),
+      totalReceivablesIncome: Number(totalReceivablesIncomeAmount),
+      totalReceivablesExpense: Number(totalReceivablesExpenseAmount),
+      profitLoss: Number(totalIncomeAmount - totalExpenseAmount),
     };
   }
 
@@ -828,12 +917,49 @@ export class TransactionService {
   /**
    * Get transaction history for a user
    */
-  async getTransactionHistory(
-    userId: string,
-    startMonth?: string,
-    endMonth?: string,
-    accountId?: number,
-  ): Promise<any[]> {
+  async getTransactionHistory({
+    limit,
+    page,
+    userId,
+    endMonth,
+    startMonth,
+    sortBy,
+    sortDirection,
+  }: GetTransactionHistoryParamType): Promise<{
+    data: {
+      id: number;
+      note: string;
+      createdAt: Date;
+      transactionType: string;
+      amount: number;
+      store: string;
+      user: string;
+      debit: {
+        code: string;
+        account: string;
+        balance: number;
+      };
+      credit: {
+        code: string;
+        account: string;
+        balance: number;
+      };
+    }[];
+    total: number;
+    currentPage: number;
+    totalPages: number;
+    filter: { startMonth: string; endMonth: string };
+  }> {
+    // Check if sortBy is a valid column
+    const sortableColumns = ['name', 'price', 'stock', 'createdAt'];
+    if (!sortableColumns.includes(sortBy)) {
+      throw new BadRequestException(
+        `Invalid sortBy column. Allowed: ${sortableColumns.join(', ')}`,
+      );
+    }
+
+    const offset = (page - 1) * limit;
+
     const queryBuilder = this.transactionRepository
       .createQueryBuilder('transaction')
       .leftJoinAndSelect('transaction.transactionType', 'transactionType')
@@ -857,21 +983,16 @@ export class TransactionService {
       });
     }
 
-    if (accountId) {
-      queryBuilder.andWhere(
-        '(transaction.debitAccountId = :accountId OR transaction.creditAccountId = :accountId)',
-        { accountId },
-      );
-    }
+    const [transactions, total] = await queryBuilder
+      .orderBy(`transaction.${sortBy}`, sortDirection)
+      .take(limit)
+      .skip(offset)
+      .getManyAndCount();
 
-    queryBuilder.orderBy('transaction.created_at', 'DESC');
-
-    const transactions = await queryBuilder.getMany();
-
-    return transactions.map((transaction) => ({
+    const mappedTransactions = transactions.map((transaction) => ({
       id: transaction.id,
       note: transaction.note,
-      createdAt: transaction.created_at,
+      createdAt: transaction.createdAt,
       transactionType: transaction.transactionType.name,
       amount: transaction.amount,
       store: transaction.store.name,
@@ -887,6 +1008,17 @@ export class TransactionService {
         balance: transaction.creditAccount.balance,
       },
     }));
+
+    return {
+      data: mappedTransactions,
+      total,
+      filter: {
+        startMonth,
+        endMonth,
+      },
+      currentPage: Number(page),
+      totalPages: Math.ceil(total / limit),
+    };
   }
 
   /**
@@ -966,7 +1098,7 @@ export class TransactionService {
       }
 
       ledger[debitAccountName].push({
-        date: transaction.created_at,
+        date: transaction.createdAt,
         description: transaction.note,
         debit: transaction.amount,
         credit: 0,
@@ -975,7 +1107,7 @@ export class TransactionService {
       });
 
       ledger[creditAccountName].push({
-        date: transaction.created_at,
+        date: transaction.createdAt,
         description: transaction.note,
         debit: 0,
         credit: transaction.amount,

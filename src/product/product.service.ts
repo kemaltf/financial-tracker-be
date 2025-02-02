@@ -241,7 +241,7 @@ export class ProductService {
     // Check if sortBy is a valid column
     const sortableColumns = ['name', 'price', 'stock', 'createdAt'];
     if (!sortableColumns.includes(sortBy)) {
-      throw new Error(
+      throw new BadRequestException(
         `Invalid sortBy column. Allowed: ${sortableColumns.join(', ')}`,
       );
     }
