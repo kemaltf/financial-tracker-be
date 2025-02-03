@@ -62,8 +62,8 @@ export class TransactionController {
     console.log(user.id);
     return this.transactionService.getFinancialSummary({
       userId: user.id,
-      startMonth: startMonth,
-      endMonth: endMonth,
+      startDateTime: startMonth,
+      endDateTime: endMonth,
     });
   }
 
@@ -110,8 +110,8 @@ export class TransactionController {
   ) {
     return this.transactionService.getTransactionHistory({
       userId: user.id,
-      startMonth,
-      endMonth,
+      startDateTime: startMonth,
+      endDateTime: endMonth,
       page,
       limit,
       sortBy,
