@@ -42,10 +42,10 @@ export class Product {
   price: number;
 
   @CreateDateColumn({ type: 'datetime', name: 'created_at' })
-  created_at: Date;
+  createdAt: Date;
 
   @UpdateDateColumn({ type: 'datetime', name: 'updated_at' })
-  updated_at: Date;
+  updatedAt: Date;
 
   @ManyToMany(() => Category, (category) => category.products)
   categories: Category[];

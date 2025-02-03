@@ -17,13 +17,14 @@ export class AuthService {
 
   @HandleErrors()
   async signUp(dto: CreateUserDto) {
-    const hashedPassword = await this.passwordService.hashPassword(
-      dto.password,
-    );
-    return await this.userService.create({
+    const hashPassword = await this.passwordService.hashPassword(dto.password);
+    const user = await this.userService.create({
       ...dto,
-      password: hashedPassword,
+      password: hashPassword,
     });
+
+    delete user.password; // Menghapus password sebelum return
+    return user;
   }
 
   @HandleErrors()
