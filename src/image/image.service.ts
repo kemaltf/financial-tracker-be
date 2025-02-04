@@ -25,6 +25,7 @@ export class ImageService {
       key: uploadResult.fileName,
       url: uploadResult.fileUrl,
       size: file.size,
+      mimeType: file.mimetype,
     });
 
     return await this.imageRepository.save(image);
@@ -44,6 +45,7 @@ export class ImageService {
         key: uploadResults[index].fileName,
         url: uploadResults[index].url,
         size: file.size,
+        mimeType: file.mimetype,
       }),
     );
 

@@ -1,3 +1,4 @@
+import { Store } from '@app/store/store.entity';
 import { Transaction } from 'src/transaction/transaction.entity';
 import {
   Entity,
@@ -48,4 +49,7 @@ export class User {
 
   @OneToMany(() => Transaction, (transaction) => transaction.user)
   Transactions: Transaction[];
+
+  @OneToMany(() => Store, (store) => store.userId)
+  stores: Store[];
 }

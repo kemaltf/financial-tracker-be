@@ -35,17 +35,17 @@ export class Product {
 
   @Column({
     type: 'decimal',
-    precision: 12,
+    precision: 15,
     scale: 2,
     transformer: new ColumnNumericTransformer(),
   })
   price: number;
 
   @CreateDateColumn({ type: 'datetime', name: 'created_at' })
-  created_at: Date;
+  createdAt: Date;
 
   @UpdateDateColumn({ type: 'datetime', name: 'updated_at' })
-  updated_at: Date;
+  updatedAt: Date;
 
   @ManyToMany(() => Category, (category) => category.products)
   categories: Category[];

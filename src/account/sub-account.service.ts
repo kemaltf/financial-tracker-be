@@ -41,10 +41,6 @@ export class SubAccountService {
   async getAvailableAccounts(transactionTypeId: number) {
     // Fetch the dynamic account type mapping
     const accountTypeMapping = await this.getAccountTypeMappingFromDb();
-    console.log('tes', typeof transactionTypeId);
-    console.log(accountTypeMapping);
-    console.log('dapat', accountTypeMapping[1]);
-    console.log('dapat 2', accountTypeMapping[transactionTypeId]);
 
     const mapping = accountTypeMapping[transactionTypeId];
     if (!mapping) {
@@ -53,16 +49,22 @@ export class SubAccountService {
 
     const subAccounts = await this.getAllAccounts();
 
-    console.log(subAccounts);
-
     // Filter accounts based on debit and credit mapping
-    const debitAccounts = subAccounts.filter((subAccount) => {
-      console.log('tesss', subAccount);
-      return mapping.debit.includes(subAccount.account.type);
-    });
-    const creditAccounts = subAccounts.filter((subAccount) =>
-      mapping.credit.includes(subAccount.account.type),
-    );
+    const debitAccounts = subAccounts
+      .filter((subAccount) => {
+        return mapping.debit.includes(subAccount.account.type);
+      })
+      .map((subAccount) => ({
+        value: subAccount.id,
+        label: `${subAccount.name} (${subAccount.code})`,
+      }));
+
+    const creditAccounts = subAccounts
+      .filter((subAccount) => mapping.credit.includes(subAccount.account.type))
+      .map((subAccount) => ({
+        value: subAccount.id,
+        label: `${subAccount.name} (${subAccount.code})`,
+      }));
 
     return { debitAccounts, creditAccounts };
   }

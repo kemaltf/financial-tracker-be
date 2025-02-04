@@ -17,13 +17,14 @@ export class AuthService {
 
   @HandleErrors()
   async signUp(dto: CreateUserDto) {
-    const hashedPassword = await this.passwordService.hashPassword(
-      dto.password,
-    );
-    return await this.userService.create({
+    const hashPassword = await this.passwordService.hashPassword(dto.password);
+    const user = await this.userService.create({
       ...dto,
-      password: hashedPassword,
+      password: hashPassword,
     });
+
+    delete user.password; // Menghapus password sebelum return
+    return user;
   }
 
   @HandleErrors()
@@ -43,10 +44,13 @@ export class AuthService {
       throw new UnauthorizedException('Invalid credentials');
     }
 
+    // Tentukan masa kedaluwarsa berdasarkan pilihan "Remember Me"
+    const refreshTokenExpiration = dto?.rememberMe ? '7d' : '1h'; // nanti ubah yang 7d tadi
+
     const payload = { sub: user.id, username: user.username };
     const accessToken = await this.jwtService.signAsync(payload);
     const refreshToken = await this.jwtService.signAsync(payload, {
-      expiresIn: '7d',
+      expiresIn: refreshTokenExpiration,
     });
 
     const atExp = this.jwtService.decode(accessToken).exp;

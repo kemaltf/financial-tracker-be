@@ -7,6 +7,7 @@ import {
   Put,
   Delete,
   Query,
+  BadRequestException,
 } from '@nestjs/common';
 import { ProductService } from './product.service';
 import { CreateProductDto } from './dto/create-product.dto';
@@ -23,13 +24,18 @@ export class ProductController {
     @Query('limit') limit: number,
     @Query('sortBy') sortBy: string,
     @Query('sortDirection') sortDirection: 'ASC' | 'DESC',
-    @Query() filters: Record<string, any>,
+    @Query('storeId') storeId: number,
+    @Query('filters') filters: Record<string, any>,
   ) {
+    if (!storeId) {
+      throw new BadRequestException('storeId is required');
+    }
     return this.productService.findAll(
       Number(page) || 1,
       Number(limit) || 10,
       sortBy || 'name',
       sortDirection || 'ASC',
+      storeId,
       filters,
     );
   }

@@ -1,5 +1,5 @@
 // src/seller/dto/login-seller.dto.ts
-import { IsNotEmpty, IsString } from 'class-validator';
+import { IsBoolean, IsNotEmpty, IsOptional, IsString } from 'class-validator';
 import { ApiProperty } from '@nestjs/swagger';
 
 export class LoginUserDto {
@@ -18,4 +18,8 @@ export class LoginUserDto {
   @IsString()
   @IsNotEmpty()
   password: string;
+
+  @IsBoolean()
+  @IsOptional()
+  rememberMe: boolean;
 }

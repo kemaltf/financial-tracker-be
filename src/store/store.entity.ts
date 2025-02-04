@@ -1,8 +1,18 @@
+import { User } from '@app/user/user.entity';
 import { Product } from 'src/product/entity/product.entity';
 import { Transaction } from 'src/transaction/transaction.entity';
-import { Entity, PrimaryGeneratedColumn, Column, OneToMany } from 'typeorm';
+import {
+  Entity,
+  PrimaryGeneratedColumn,
+  Column,
+  OneToMany,
+  ManyToOne,
+  JoinColumn,
+  Unique,
+} from 'typeorm';
 
 @Entity()
+@Unique(['name', 'userId'])
 export class Store {
   @PrimaryGeneratedColumn()
   id: number;
@@ -13,8 +23,9 @@ export class Store {
   @Column('text')
   description: string;
 
-  @Column()
-  owner: string;
+  @ManyToOne(() => User, (user) => user.stores)
+  @JoinColumn({ name: 'user_id' }) // Menentukan nama kolom di DB
+  userId: User;
 
   @OneToMany(() => Product, (product) => product.store)
   products: Product[];
