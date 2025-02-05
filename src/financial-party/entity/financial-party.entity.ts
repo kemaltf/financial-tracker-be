@@ -5,6 +5,7 @@ import {
   OneToMany,
   CreateDateColumn,
   UpdateDateColumn,
+  Unique,
 } from 'typeorm';
 import { Transaction } from 'src/transaction/transaction.entity';
 import { DebtsAndReceivables } from '@app/debt-receivable/debts-and-receivables.entity';
@@ -16,6 +17,7 @@ export enum Role {
 }
 
 @Entity('financial_party')
+@Unique(['email'])
 export class FinancialParty {
   @PrimaryGeneratedColumn()
   id: number;
