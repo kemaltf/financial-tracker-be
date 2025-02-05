@@ -12,7 +12,7 @@ export class CustomerService {
     private readonly financialPartyRepository: Repository<FinancialParty>,
   ) {}
 
-  async findAll(role?: Role): Promise<{ value: number; label: string }[]> {
+  async findOptAll(role?: Role): Promise<{ value: number; label: string }[]> {
     const financialParties = role
       ? await this.financialPartyRepository.find({ where: { role } })
       : await this.financialPartyRepository.find();
@@ -21,6 +21,14 @@ export class CustomerService {
       value: party.id,
       label: `${party.name} - (${party.email})`,
     }));
+  }
+
+  async findAll(role?: Role) {
+    const financialParties = role
+      ? await this.financialPartyRepository.find({ where: { role } })
+      : await this.financialPartyRepository.find();
+
+    return financialParties;
   }
 
   async findOne(id: number): Promise<FinancialParty> {

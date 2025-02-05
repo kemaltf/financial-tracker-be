@@ -19,10 +19,18 @@ import { FinancialParty, Role } from './entity/financial-party.entity';
 export class CustomerController {
   constructor(private readonly financialPartyService: CustomerService) {}
 
-  @Get()
-  findAll(
+  @Get('/opt')
+  findOptAll(
     @Query('role') role?: Role,
   ): Promise<{ value: number; label: string }[]> {
+    if (role && !Object.values(Role).includes(role)) {
+      throw new BadRequestException(`Invalid role: ${role}`);
+    }
+    return this.financialPartyService.findOptAll(role);
+  }
+
+  @Get('/')
+  findAll(@Query('role') role?: Role) {
     if (role && !Object.values(Role).includes(role)) {
       throw new BadRequestException(`Invalid role: ${role}`);
     }

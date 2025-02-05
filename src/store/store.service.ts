@@ -36,15 +36,29 @@ export class StoreService {
     return stores.map((store) => ({
       value: store.id,
       label: store.name,
+      description: store.description,
     }));
   }
 
-  async findOne(username: string, id: number): Promise<Store> {
+  async findOne(userId: string, id: number): Promise<Store> {
     const store = await this.storeRepository.findOne({
-      where: { id, userId: { username } },
-      relations: ['products', 'transactions', 'transactionLogs'],
+      where: {
+        id,
+        userId: { id: userId },
+      },
+      relations: ['products', 'transactions', 'userId'],
+      select: {
+        id: true,
+        name: true,
+        description: true,
+        userId: {
+          id: true,
+          name: true, // Hanya ambil id dan name dari userId
+        },
+      },
     });
 
+    console.log(store);
     if (!store) {
       throw new NotFoundException('Store not found');
     }
@@ -52,14 +66,12 @@ export class StoreService {
     return store;
   }
 
-  async update(
-    id: number,
-    updateStoreDto: UpdateStoreDto,
-    user: User,
-  ): Promise<Store> {
-    const store = await this.findOne(user.username, id);
+  async update(id: number, updateStoreDto: UpdateStoreDto, user: User) {
+    console.log(user?.id);
 
-    if (store.userId.username !== user.username) {
+    const store = await this.findOne(user.id, id);
+    console.log(store);
+    if (store.userId.id !== user.id) {
       throw new ForbiddenException('You can only update your own store');
     }
 
@@ -68,9 +80,9 @@ export class StoreService {
   }
 
   async remove(id: number, user: User): Promise<void> {
-    const store = await this.findOne(user.username, id);
+    const store = await this.findOne(user.id, id);
 
-    if (store.userId.username !== user.username) {
+    if (store.userId.id !== user.id) {
       throw new ForbiddenException('You can only delete your own store');
     }
 

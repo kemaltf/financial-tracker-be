@@ -29,7 +29,7 @@ export class StoreController {
 
   @Get(':id')
   async findOne(@Param('id') id: number, @GetUser() user: User) {
-    return this.storeService.findOne(user.username, id);
+    return this.storeService.findOne(user.id, id);
   }
 
   @Put(':id')
