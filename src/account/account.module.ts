@@ -10,5 +10,6 @@ import { TransactionType } from '@app/transaction/transactionType/transaction-ty
   imports: [TypeOrmModule.forFeature([SubAccount, Account, TransactionType])],
   providers: [SubAccountService],
   controllers: [subAccountController],
+  exports: [SubAccountService],
 })
 export class AccountModule {}

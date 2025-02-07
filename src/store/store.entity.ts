@@ -12,7 +12,7 @@ import {
 } from 'typeorm';
 
 @Entity()
-@Unique(['name', 'userId'])
+@Unique(['name', 'user'])
 export class Store {
   @PrimaryGeneratedColumn()
   id: number;
@@ -23,9 +23,9 @@ export class Store {
   @Column('text')
   description: string;
 
-  @ManyToOne(() => User, (user) => user.stores)
+  @ManyToOne(() => User, (user) => user.Stores)
   @JoinColumn({ name: 'user_id' }) // Menentukan nama kolom di DB
-  userId: User;
+  user: User;
 
   @OneToMany(() => Product, (product) => product.store)
   products: Product[];
