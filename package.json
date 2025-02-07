@@ -19,9 +19,11 @@
     "test:debug": "node --inspect-brk -r tsconfig-paths/register -r ts-node/register node_modules/.bin/jest --runInBand",
     "test:e2e": "jest --config ./test/jest-e2e.json",
     "db:seeder": "ts-node ./dist/database/seed-runner.js",
+    "db:generate": "npx ts-node -P ./tsconfig.json -r tsconfig-paths/register ./node_modules/typeorm/cli.js migration:generate -d ./src/database/orm.config.ts ./dist/database",
     "db:dropall": "npx typeorm schema:drop -d ./dist/database/orm.config.js",
     "db:create": "npx typeorm migration:run -d ./dist/database/orm.config.js",
-    "db:sync": "npx typeorm schema:sync -d ./dist/database/orm.config.js"
+    "db:sync": "npx typeorm schema:sync -d ./dist/database/orm.config.js",
+    "docker:up": "docker compose up -d"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.716.0",

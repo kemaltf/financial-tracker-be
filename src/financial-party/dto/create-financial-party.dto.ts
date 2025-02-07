@@ -30,7 +30,7 @@ export class FinancialPartyCreateDto {
 
   @IsString()
   @IsOptional()
-  @Length(1, 255)
+  @Length(0, 255)
   addressLine2?: string;
 
   @IsString()

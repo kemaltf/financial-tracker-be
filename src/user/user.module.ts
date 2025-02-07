@@ -4,9 +4,15 @@ import { UserService } from './user.service';
 import { UserController } from './user.controller';
 import { User } from './user.entity';
 import { TypeOrmModule } from '@nestjs/typeorm';
+import { SubAccount } from '@app/account/sub-account.entity';
+import { Account } from '@app/account/account.entity';
+import { AccountModule } from '@app/account/account.module';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([User])],
+  imports: [
+    AccountModule,
+    TypeOrmModule.forFeature([User, SubAccount, Account]),
+  ],
   controllers: [UserController],
   providers: [UserService],
   exports: [UserService],

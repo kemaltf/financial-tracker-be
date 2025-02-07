@@ -22,14 +22,14 @@ export class StoreService {
   async create(createStoreDto: CreateStoreDto, user: User): Promise<Store> {
     const store = this.storeRepository.create({
       ...createStoreDto,
-      userId: user,
+      user: user,
     });
     return this.storeRepository.save(store);
   }
 
   async findAll(username: string): Promise<{ value: number; label: string }[]> {
     const stores = await this.storeRepository.find({
-      where: { userId: { username } },
+      where: { user: { username } },
       relations: ['userId'],
     });
 
@@ -44,14 +44,14 @@ export class StoreService {
     const store = await this.storeRepository.findOne({
       where: {
         id,
-        userId: { id: userId },
+        user: { id: userId },
       },
       relations: ['products', 'transactions', 'userId'],
       select: {
         id: true,
         name: true,
         description: true,
-        userId: {
+        user: {
           id: true,
           name: true, // Hanya ambil id dan name dari userId
         },
@@ -71,7 +71,7 @@ export class StoreService {
 
     const store = await this.findOne(user.id, id);
     console.log(store);
-    if (store.userId.id !== user.id) {
+    if (store.user.id !== user.id) {
       throw new ForbiddenException('You can only update your own store');
     }
 
@@ -82,7 +82,7 @@ export class StoreService {
   async remove(id: number, user: User): Promise<void> {
     const store = await this.findOne(user.id, id);
 
-    if (store.userId.id !== user.id) {
+    if (store.user.id !== user.id) {
       throw new ForbiddenException('You can only delete your own store');
     }
 

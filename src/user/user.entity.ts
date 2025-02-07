@@ -1,3 +1,4 @@
+import { SubAccount } from '@app/account/sub-account.entity';
 import { Store } from '@app/store/store.entity';
 import { Transaction } from 'src/transaction/transaction.entity';
 import {
@@ -50,6 +51,9 @@ export class User {
   @OneToMany(() => Transaction, (transaction) => transaction.user)
   Transactions: Transaction[];
 
-  @OneToMany(() => Store, (store) => store.userId)
-  stores: Store[];
+  @OneToMany(() => Store, (store) => store.user)
+  Stores: Store[];
+
+  @OneToMany(() => SubAccount, (transaction) => transaction.id)
+  subAccount: SubAccount[];
 }

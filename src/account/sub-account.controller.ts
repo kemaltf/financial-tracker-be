@@ -12,6 +12,8 @@ import { SubAccountService } from './sub-account.service';
 import { CreateAccountDTO } from './dto/create-account.dto';
 import { UpdateAccountDTO } from './dto/update-account.dto';
 import { SubAccount } from './sub-account.entity';
+import { GetUser } from '@app/common/decorators/get-user.decorator';
+import { User } from '@app/user/user.entity';
 
 @Controller('accounts')
 export class subAccountController {
@@ -20,34 +22,42 @@ export class subAccountController {
   @Post()
   async createAccount(
     @Body() createAccountDTO: CreateAccountDTO,
+    @GetUser() user: User,
   ): Promise<SubAccount> {
-    return this.subAccountService.createAccount(createAccountDTO);
+    return this.subAccountService.createAccount(createAccountDTO, user);
   }
 
   @Put(':id')
   async updateAccount(
     @Param('id') id: number,
     @Body() updateAccountDTO: UpdateAccountDTO,
+    @GetUser() user: User,
   ): Promise<SubAccount> {
-    return this.subAccountService.updateAccount(id, updateAccountDTO);
+    return this.subAccountService.updateAccount(id, updateAccountDTO, user);
   }
 
   // Mendapatkan semua akun
   @Get()
-  async getAllAccounts(): Promise<SubAccount[]> {
-    return this.subAccountService.getAllAccounts();
+  async getAllAccounts(@GetUser() user: User): Promise<SubAccount[]> {
+    return this.subAccountService.getAllAccounts(user);
   }
 
   // Mendapatkan akun berdasarkan ID
   @Get(':id')
-  async getAccountById(@Param('id') id: number): Promise<SubAccount> {
-    return this.subAccountService.getAccountById(id);
+  async getAccountById(
+    @Param('id') id: number,
+    @GetUser() user: User,
+  ): Promise<SubAccount> {
+    return this.subAccountService.getAccountById(id, user);
   }
 
   // Menghapus akun berdasarkan ID
   @Delete(':id')
-  async deleteAccount(@Param('id') id: number): Promise<{ message: string }> {
-    await this.subAccountService.deleteAccount(id);
+  async deleteAccount(
+    @Param('id') id: number,
+    user: User,
+  ): Promise<{ message: string }> {
+    await this.subAccountService.deleteAccount(id, user);
     return { message: `Account with ID ${id} has been deleted` };
   }
 
@@ -60,6 +70,7 @@ export class subAccountController {
   @Get('/options/:transactionTypeId')
   async getAvailableAccounts(
     @Param('transactionTypeId') transactionTypeId: number,
+    @GetUser() user: User,
   ) {
     console.log(transactionTypeId);
     if (!transactionTypeId) {
@@ -69,6 +80,6 @@ export class subAccountController {
     }
 
     // Fetch available accounts based on transaction type
-    return this.subAccountService.getAvailableAccounts(transactionTypeId);
+    return this.subAccountService.getAvailableAccounts(transactionTypeId, user);
   }
 }
