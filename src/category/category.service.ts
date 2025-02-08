@@ -1,27 +1,47 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Category } from './category.entity';
 import { CreateCategoryDto } from './dto/create-category.dto';
 import { UpdateCategoryDto } from './dto/update-category.dto';
+import { HandleErrors } from '@app/common/decorators';
+import { Store } from '@app/store/store.entity';
 
 @Injectable()
 export class CategoryService {
   constructor(
     @InjectRepository(Category)
     private readonly categoryRepository: Repository<Category>,
+    @InjectRepository(Store)
+    private readonly storeRepository: Repository<Store>,
   ) {}
 
-  // Create a new category
+  @HandleErrors()
   async create(dto: CreateCategoryDto): Promise<Category> {
-    const category = this.categoryRepository.create(dto);
+    const store = await this.storeRepository.findOne({
+      where: { id: dto.storeId },
+    });
+
+    if (!store) {
+      throw new BadRequestException('Store not found');
+    }
+
+    const category = this.categoryRepository.create({
+      ...dto,
+      store, // Menetapkan relasi dengan store
+    });
+
     return this.categoryRepository.save(category);
   }
 
   // Get all categories
   async findAll(): Promise<Category[]> {
     return this.categoryRepository.find({
-      relations: ['products'],
+      relations: ['store'],
     });
   }
 

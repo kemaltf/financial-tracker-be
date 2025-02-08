@@ -1,3 +1,4 @@
+import { Store } from '@app/store/store.entity';
 import { Product } from 'src/product/entity/product.entity';
 import {
   Entity,
@@ -7,6 +8,7 @@ import {
   UpdateDateColumn,
   ManyToMany,
   JoinTable,
+  ManyToOne,
 } from 'typeorm';
 
 @Entity('categories')
@@ -33,4 +35,7 @@ export class Category {
     inverseJoinColumn: { name: 'product_id', referencedColumnName: 'id' },
   })
   products: Product[];
+
+  @ManyToOne(() => Store, (store) => store.categories, { nullable: false })
+  store: Store;
 }
