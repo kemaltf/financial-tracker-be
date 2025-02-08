@@ -32,6 +32,6 @@ export class Account {
   })
   normalBalance: BalanceImpactSide; // Menentukan sisi mana yang mempengaruhi saldo (DEBIT atau CREDIT)
 
-  @OneToMany(() => SubAccount, (subAccount) => subAccount.Account)
+  @OneToMany(() => SubAccount, (subAccount) => subAccount.account)
   subAccounts: SubAccount[];
 }

@@ -30,7 +30,7 @@ export class StoreService {
   async findAll(username: string): Promise<{ value: number; label: string }[]> {
     const stores = await this.storeRepository.find({
       where: { user: { username } },
-      relations: ['userId'],
+      relations: ['user'],
     });
 
     return stores.map((store) => ({
@@ -46,7 +46,7 @@ export class StoreService {
         id,
         user: { id: userId },
       },
-      relations: ['products', 'transactions', 'userId'],
+      relations: ['products', 'transactions', 'user'],
       select: {
         id: true,
         name: true,
