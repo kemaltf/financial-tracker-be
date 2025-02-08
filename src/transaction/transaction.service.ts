@@ -545,8 +545,8 @@ export class TransactionService {
     if (position === 'debit') {
       // Jika akun di posisi debit, Liability dan Equity akan berkurang
       if (
-        account.Account.type === AccountType.LIABILITY ||
-        account.Account.type === AccountType.EQUITY
+        account.account.type === AccountType.LIABILITY ||
+        account.account.type === AccountType.EQUITY
       ) {
         if (account.balance - amount < 0) {
           throw new BadRequestException(
@@ -557,8 +557,8 @@ export class TransactionService {
     } else if (position === 'credit') {
       // Jika akun di posisi kredit, Asset dan Expense akan berkurang
       if (
-        account.Account.type === AccountType.ASSET ||
-        account.Account.type === AccountType.EXPENSE
+        account.account.type === AccountType.ASSET ||
+        account.account.type === AccountType.EXPENSE
       ) {
         if (account.balance - amount < 0) {
           throw new BadRequestException(
@@ -641,7 +641,7 @@ export class TransactionService {
     console.log('debitAccount', debitAccount);
     // Update the balance for the debit account
     const debitAccountBalanceImpact =
-      debitAccount.Account.normalBalance === BalanceImpactSide.DEBIT
+      debitAccount.account.normalBalance === BalanceImpactSide.DEBIT
         ? amount
         : -amount;
     console.log('debitAccountBalanceImpact', debitAccountBalanceImpact);
@@ -653,7 +653,7 @@ export class TransactionService {
 
     // Update the balance for the credit account
     const creditAccountBalanceImpact =
-      creditAccount.Account.normalBalance === BalanceImpactSide.DEBIT
+      creditAccount.account.normalBalance === BalanceImpactSide.DEBIT
         ? -amount
         : amount;
 
@@ -1264,7 +1264,7 @@ export class TransactionService {
         debit: transaction.amount,
         credit: 0,
         balance: 0, // Placeholder for balance calculation
-        normalBalance: transaction.debitAccount.Account.normalBalance,
+        normalBalance: transaction.debitAccount.account.normalBalance,
       });
 
       ledger[creditAccountName].push({
@@ -1273,7 +1273,7 @@ export class TransactionService {
         debit: 0,
         credit: transaction.amount,
         balance: 0, // Placeholder for balance calculation
-        normalBalance: transaction.creditAccount.Account.normalBalance,
+        normalBalance: transaction.creditAccount.account.normalBalance,
       });
     });
 

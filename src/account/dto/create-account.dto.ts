@@ -9,11 +9,6 @@ import { AccountType } from '../account.entity';
 
 export class CreateAccountDTO {
   @IsString()
-  @IsNotEmpty({ message: 'Code is required' })
-  @MaxLength(20, { message: 'Code must not exceed 20 characters' })
-  code: string; // Kode akun
-
-  @IsString()
   @IsNotEmpty({ message: 'Name is required' })
   @MaxLength(100, { message: 'Name must not exceed 100 characters' })
   name: string; // Nama akun

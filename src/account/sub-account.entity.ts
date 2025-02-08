@@ -26,7 +26,7 @@ export class SubAccount {
 
   @ManyToOne(() => Account, { nullable: false })
   @JoinColumn({ name: 'account_id' })
-  Account: Account; // Mengacu pada AccountType
+  account: Account; // Mengacu pada AccountType
 
   @Column({ type: 'varchar', length: 255, nullable: true })
   description: string; // Deskripsi opsional
@@ -47,7 +47,11 @@ export class SubAccount {
   @UpdateDateColumn({ type: 'timestamp', name: 'updated_at' })
   updatedAt: Date;
 
-  @ManyToOne(() => User, (user) => user.Stores) // Wajib ada user_id
+  @ManyToOne(
+    () => User,
+    (user) => user.id,
+    { onDelete: 'CASCADE' }, // Menambahkan cascade delete
+  ) // Wajib ada user_id
   @JoinColumn({ name: 'user_id' }) // Nama kolom di database
   user: User; // Relasi wajib dengan User
 }

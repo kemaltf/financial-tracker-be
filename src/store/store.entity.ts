@@ -23,7 +23,11 @@ export class Store {
   @Column('text')
   description: string;
 
-  @ManyToOne(() => User, (user) => user.Stores)
+  @ManyToOne(
+    () => User,
+    (user) => user.Stores,
+    { onDelete: 'CASCADE' }, // Menambahkan cascade delete
+  )
   @JoinColumn({ name: 'user_id' }) // Menentukan nama kolom di DB
   user: User;
 
