@@ -45,7 +45,7 @@ export class CategoryController {
   }
 
   @Delete(':id')
-  async remove(@Param('id') id: number) {
-    return this.categoryService.remove(+id);
+  async remove(@Param('id') id: number, @GetUser() user: User) {
+    return this.categoryService.remove(+id, user);
   }
 }

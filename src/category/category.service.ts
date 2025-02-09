@@ -105,19 +105,20 @@ export class CategoryService {
     dto: UpdateCategoryDto,
     user: User,
   ): Promise<Category> {
-    console.log('id', id);
     const category = await this.findOne(id, user); // check if exists
-    console.log('cek -======', category);
     if (category.store.user.id !== user.id) {
-      throw new ForbiddenException('You can only delete your own store');
+      throw new ForbiddenException('You can only update your own category');
     }
-    const result = await this.categoryRepository.update(id, dto);
-    console.log('result====', result);
+    await this.categoryRepository.update(id, dto);
     return this.findOne(id, user);
   }
 
   // Delete a category
-  async remove(id: number): Promise<void> {
+  async remove(id: number, user: User): Promise<void> {
+    const category = await this.findOne(id, user); // check if exists
+    if (category.store.user.id !== user.id) {
+      throw new ForbiddenException('You can only update your own category');
+    }
     const result = await this.categoryRepository.delete(id);
     if (result.affected === 0) {
       throw new NotFoundException(`Category with ID ${id} not found`);
