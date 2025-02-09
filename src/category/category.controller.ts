@@ -4,35 +4,44 @@ import {
   Post,
   Body,
   Param,
-  Patch,
   Delete,
+  Put,
 } from '@nestjs/common';
 import { CategoryService } from './category.service';
 import { CreateCategoryDto } from './dto/create-category.dto';
 import { UpdateCategoryDto } from './dto/update-category.dto';
+import { User } from '@app/user/user.entity';
+import { GetUser } from '@app/common/decorators/get-user.decorator';
 
 @Controller('categories')
 export class CategoryController {
   constructor(private readonly categoryService: CategoryService) {}
 
   @Post()
-  async create(@Body() dto: CreateCategoryDto) {
-    return this.categoryService.create(dto);
+  async create(@Body() dto: CreateCategoryDto, @GetUser() user: User) {
+    const result = await this.categoryService.create(dto, user);
+    return result;
   }
 
   @Get()
-  async findAll() {
-    return this.categoryService.findAll();
+  async findAll(@GetUser() user: User) {
+    return this.categoryService.findAll(user);
   }
 
   @Get(':id')
-  async findOne(@Param('id') id: number) {
-    return this.categoryService.findOne(+id);
+  async findOne(@Param('id') id: number, @GetUser() user: User) {
+    const result = await this.categoryService.findOne(+id, user);
+    return result;
   }
 
-  @Patch(':id')
-  async update(@Param('id') id: number, @Body() dto: UpdateCategoryDto) {
-    return this.categoryService.update(+id, dto);
+  @Put(':id')
+  async update(
+    @Param('id') id: number,
+    @Body() dto: UpdateCategoryDto,
+    @GetUser() user: User,
+  ) {
+    const result = await this.categoryService.update(+id, dto, user);
+    return result;
   }
 
   @Delete(':id')

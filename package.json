@@ -23,7 +23,10 @@
     "db:dropall": "npx typeorm schema:drop -d ./dist/database/orm.config.js",
     "db:create": "npx typeorm migration:run -d ./dist/database/orm.config.js",
     "db:sync": "npx typeorm schema:sync -d ./dist/database/orm.config.js",
-    "docker:up": "docker compose up -d"
+    "db:start": "docker-compose up -d",
+    "db:stop": "docker-compose down",
+    "db:restart": "docker-compose down && docker-compose up -d",
+    "db:logs": "docker-compose logs -f"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.716.0",

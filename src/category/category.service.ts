@@ -1,5 +1,6 @@
 import {
   BadRequestException,
+  ForbiddenException,
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
@@ -10,6 +11,7 @@ import { CreateCategoryDto } from './dto/create-category.dto';
 import { UpdateCategoryDto } from './dto/update-category.dto';
 import { HandleErrors } from '@app/common/decorators';
 import { Store } from '@app/store/store.entity';
+import { User } from '@app/user/user.entity';
 
 @Injectable()
 export class CategoryService {
@@ -21,9 +23,10 @@ export class CategoryService {
   ) {}
 
   @HandleErrors()
-  async create(dto: CreateCategoryDto): Promise<Category> {
+  async create(dto: CreateCategoryDto, user: User): Promise<Category> {
     const store = await this.storeRepository.findOne({
-      where: { id: dto.storeId },
+      where: { id: dto.storeId, user: { id: user.id } },
+      relations: ['user'],
     });
 
     if (!store) {
@@ -35,21 +38,60 @@ export class CategoryService {
       store, // Menetapkan relasi dengan store
     });
 
-    return this.categoryRepository.save(category);
+    const result = await this.categoryRepository.save(category);
+    return this.findOne(result.id, user);
   }
 
   // Get all categories
-  async findAll(): Promise<Category[]> {
-    return this.categoryRepository.find({
-      relations: ['store'],
+  async findAll(user: User): Promise<Category[]> {
+    return await this.categoryRepository.find({
+      where: {
+        store: {
+          user: {
+            id: user.id, // Filter berdasarkan userId
+          },
+        },
+      },
+      relations: ['store', 'store.user'], // Pastikan user tetap bisa diakses
+      select: {
+        id: true,
+        name: true,
+        description: true,
+        store: {
+          id: true,
+          name: true,
+          user: {
+            id: true, // Hanya mengambil id user
+          },
+        },
+      },
     });
   }
 
   // Get a single category by ID
-  async findOne(id: number): Promise<Category> {
+  async findOne(id: number, user: User): Promise<Category> {
     const category = await this.categoryRepository.findOne({
-      where: { id },
-      relations: ['products'],
+      where: {
+        id: id,
+        store: {
+          user: {
+            id: user.id, // Filter berdasarkan userId
+          },
+        },
+      },
+      relations: ['store', 'store.user'],
+      select: {
+        id: true,
+        name: true,
+        description: true,
+        store: {
+          id: true,
+          name: true,
+          user: {
+            id: true, // Hanya mengambil id user
+          },
+        },
+      },
     });
     if (!category) {
       throw new NotFoundException(`Category with ID ${id} not found`);
@@ -58,10 +100,20 @@ export class CategoryService {
   }
 
   // Update a category
-  async update(id: number, dto: UpdateCategoryDto): Promise<Category> {
-    await this.findOne(id); // check if exists
-    await this.categoryRepository.update(id, dto);
-    return this.findOne(id);
+  async update(
+    id: number,
+    dto: UpdateCategoryDto,
+    user: User,
+  ): Promise<Category> {
+    console.log('id', id);
+    const category = await this.findOne(id, user); // check if exists
+    console.log('cek -======', category);
+    if (category.store.user.id !== user.id) {
+      throw new ForbiddenException('You can only delete your own store');
+    }
+    const result = await this.categoryRepository.update(id, dto);
+    console.log('result====', result);
+    return this.findOne(id, user);
   }
 
   // Delete a category

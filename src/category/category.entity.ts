@@ -9,9 +9,11 @@ import {
   ManyToMany,
   JoinTable,
   ManyToOne,
+  Unique,
 } from 'typeorm';
 
 @Entity('categories')
+@Unique(['store', 'name']) // Membuat kombinasi user dan code unik
 export class Category {
   @PrimaryGeneratedColumn()
   id: number;
