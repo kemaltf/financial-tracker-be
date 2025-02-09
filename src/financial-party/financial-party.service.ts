@@ -4,6 +4,7 @@ import { Repository } from 'typeorm';
 import { FinancialPartyCreateDto } from './dto/create-financial-party.dto';
 import { UpdateCustomerDto } from './dto/update-financial-party.dto';
 import { FinancialParty, Role } from './entity/financial-party.entity';
+import { User } from '@app/user/user.entity';
 
 @Injectable()
 export class CustomerService {
@@ -12,10 +13,19 @@ export class CustomerService {
     private readonly financialPartyRepository: Repository<FinancialParty>,
   ) {}
 
-  async findOptAll(role?: Role): Promise<{ value: number; label: string }[]> {
+  async findOptAll(
+    user: User,
+    role?: Role,
+  ): Promise<{ value: number; label: string }[]> {
     const financialParties = role
-      ? await this.financialPartyRepository.find({ where: { role } })
-      : await this.financialPartyRepository.find();
+      ? await this.financialPartyRepository.find({
+          where: { role, user: { id: user.id } },
+          relations: ['user'],
+        })
+      : await this.financialPartyRepository.find({
+          where: { user: { id: user.id } },
+          relations: ['user'],
+        });
 
     return financialParties.map((party) => ({
       value: party.id,
@@ -23,37 +33,54 @@ export class CustomerService {
     }));
   }
 
-  async findAll(role?: Role) {
+  async findAll(user: User, role?: Role) {
     const financialParties = role
-      ? await this.financialPartyRepository.find({ where: { role } })
-      : await this.financialPartyRepository.find();
+      ? await this.financialPartyRepository.find({
+          where: { role, user: { id: user.id } },
+          relations: ['user'],
+        })
+      : await this.financialPartyRepository.find({
+          where: { user: { id: user.id } },
+          relations: ['user'],
+        });
 
     return financialParties;
   }
 
-  async findOne(id: number): Promise<FinancialParty> {
-    const customer = await this.financialPartyRepository.findOne({
-      where: { id },
+  async findOne(id: number, user: User): Promise<FinancialParty> {
+    const financialParty = await this.financialPartyRepository.findOne({
+      where: { id, user: { id: user.id } },
+      relations: ['user'],
     });
-    if (!customer) {
+    if (!financialParty) {
       throw new NotFoundException(`Financial Party with ID ${id} not found`);
     }
-    return customer;
+    return financialParty;
   }
 
-  async create(data: FinancialPartyCreateDto): Promise<FinancialParty> {
-    const newCustomer = this.financialPartyRepository.create(data);
-    return this.financialPartyRepository.save(newCustomer);
+  async create(
+    data: FinancialPartyCreateDto,
+    user: User,
+  ): Promise<FinancialParty> {
+    const newFinancialParty = this.financialPartyRepository.create({
+      ...data,
+      user: user,
+    });
+    return this.financialPartyRepository.save(newFinancialParty);
   }
 
-  async update(id: number, data: UpdateCustomerDto): Promise<FinancialParty> {
-    const customer = await this.findOne(id);
-    Object.assign(customer, data);
-    return this.financialPartyRepository.save(customer);
+  async update(
+    id: number,
+    data: UpdateCustomerDto,
+    user: User,
+  ): Promise<FinancialParty> {
+    const financialParty = await this.findOne(id, user);
+    Object.assign(financialParty, data);
+    return this.financialPartyRepository.save(financialParty);
   }
 
-  async remove(id: number): Promise<void> {
-    const customer = await this.findOne(id);
-    await this.financialPartyRepository.remove(customer);
+  async remove(id: number, user: User): Promise<void> {
+    const financialParty = await this.findOne(id, user);
+    await this.financialPartyRepository.remove(financialParty);
   }
 }
