@@ -1,3 +1,4 @@
+import { Store } from '@app/store/store.entity';
 import { Product } from 'src/product/entity/product.entity';
 import {
   Entity,
@@ -7,9 +8,12 @@ import {
   UpdateDateColumn,
   ManyToMany,
   JoinTable,
+  ManyToOne,
+  Unique,
 } from 'typeorm';
 
 @Entity('categories')
+@Unique(['store', 'name']) // Membuat kombinasi user dan code unik
 export class Category {
   @PrimaryGeneratedColumn()
   id: number;
@@ -33,4 +37,7 @@ export class Category {
     inverseJoinColumn: { name: 'product_id', referencedColumnName: 'id' },
   })
   products: Product[];
+
+  @ManyToOne(() => Store, (store) => store.categories, { nullable: false })
+  store: Store;
 }
