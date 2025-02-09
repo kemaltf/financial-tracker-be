@@ -6,9 +6,12 @@ import {
   CreateDateColumn,
   UpdateDateColumn,
   Unique,
+  ManyToOne,
+  JoinColumn,
 } from 'typeorm';
 import { Transaction } from 'src/transaction/transaction.entity';
 import { DebtsAndReceivables } from '@app/debt-receivable/debts-and-receivables.entity';
+import { User } from '@app/user/user.entity';
 
 export enum Role {
   debtor = 'DEBTOR',
@@ -69,4 +72,12 @@ export class FinancialParty {
 
   @UpdateDateColumn({ type: 'timestamp' })
   updatedAt: Date;
+
+  @ManyToOne(
+    () => User,
+    (user) => user.financialParties,
+    { onDelete: 'CASCADE' }, // Menambahkan cascade delete
+  )
+  @JoinColumn({ name: 'user_id' }) // Menentukan nama kolom di DB
+  user: User;
 }
