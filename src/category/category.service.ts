@@ -106,10 +106,12 @@ export class CategoryService {
     user: User,
   ): Promise<Category> {
     const category = await this.findOne(id, user); // check if exists
+
     if (category.store.user.id !== user.id) {
       throw new ForbiddenException('You can only update your own category');
     }
-    await this.categoryRepository.update(id, dto);
+    Object.assign(category, dto);
+    await this.categoryRepository.save(category);
     return this.findOne(id, user);
   }
 

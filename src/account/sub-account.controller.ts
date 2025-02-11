@@ -48,7 +48,7 @@ export class subAccountController {
     @Param('id') id: number,
     @GetUser() user: User,
   ): Promise<SubAccount> {
-    return this.subAccountService.getAccountById(id, user);
+    return this.subAccountService.getSubAccountById(id, user);
   }
 
   // Menghapus akun berdasarkan ID

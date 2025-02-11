@@ -108,7 +108,7 @@ export class SubAccountService {
   }
 
   // Mendapatkan akun berdasarkan ID
-  async getAccountById(id: number, user: User): Promise<SubAccount> {
+  async getSubAccountById(id: number, user: User): Promise<SubAccount> {
     const account = await this.subAccountRepository.findOne({
       where: { id, user: user },
       relations: ['account'],
@@ -231,14 +231,14 @@ export class SubAccountService {
     updateAccountDTO: UpdateAccountDTO,
     user: User,
   ): Promise<SubAccount> {
-    const account = await this.getAccountById(id, user);
+    const account = await this.getSubAccountById(id, user);
     Object.assign(account, updateAccountDTO);
     return await this.subAccountRepository.save(account);
   }
 
   // Menghapus akun berdasarkan ID
   async deleteAccount(id: number, user: User): Promise<void> {
-    const account = await this.getAccountById(id, user);
+    const account = await this.getSubAccountById(id, user);
     await this.subAccountRepository.remove(account);
   }
 }

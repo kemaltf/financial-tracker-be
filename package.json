@@ -26,7 +26,8 @@
     "db:start": "docker-compose up -d",
     "db:stop": "docker-compose down",
     "db:restart": "docker-compose down && docker-compose up -d",
-    "db:logs": "docker-compose logs -f"
+    "db:logs": "docker-compose logs -f",
+    "kill": "npx kill-port 5000"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.716.0",

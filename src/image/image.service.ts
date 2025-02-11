@@ -4,6 +4,8 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Image } from './image.entity';
 import { HandleErrors } from 'src/common/decorators';
+import { GetUser } from '@app/common/decorators/get-user.decorator';
+import { User } from '@app/user/user.entity';
 
 @Injectable()
 export class ImageService {
@@ -14,7 +16,10 @@ export class ImageService {
   ) {}
 
   @HandleErrors()
-  async uploadSingleImage(file: Express.Multer.File): Promise<Image> {
+  async uploadSingleImage(
+    file: Express.Multer.File,
+    @GetUser() user: User,
+  ): Promise<Image> {
     const uploadResult = await this.s3Service.uploadSingle(
       file.originalname,
       file.buffer,
@@ -26,12 +31,16 @@ export class ImageService {
       url: uploadResult.fileUrl,
       size: file.size,
       mimeType: file.mimetype,
+      user: user,
     });
 
     return await this.imageRepository.save(image);
   }
 
-  async uploadMultipleImages(files: Express.Multer.File[]): Promise<Image[]> {
+  async uploadMultipleImages(
+    files: Express.Multer.File[],
+    user: User,
+  ): Promise<Image[]> {
     const uploadResults = await this.s3Service.uploadMultiple(
       files.map((file) => ({
         fileName: file.originalname,
@@ -46,6 +55,7 @@ export class ImageService {
         url: uploadResults[index].url,
         size: file.size,
         mimeType: file.mimetype,
+        user: user,
       }),
     );
 
@@ -53,14 +63,20 @@ export class ImageService {
   }
 
   // Mengambil semua gambar dari database
-  async getAllImagesFromDB() {
-    return await this.imageRepository.find(); // Mengambil semua data gambar
+  async getAllImagesFromDB(user: User) {
+    return await this.imageRepository.find({
+      where: { user: { id: user.id } },
+      relations: ['user'],
+    }); // Mengambil semua data gambar
   }
 
   // Menghapus gambar dari S3 dan database
-  async deleteImage(id: number): Promise<string> {
+  async deleteImage(id: number, user: User): Promise<string> {
     // Cari gambar berdasarkan ID
-    const image = await this.imageRepository.findOne({ where: { id } });
+    const image = await this.imageRepository.findOne({
+      where: { id, user: { id: user.id } },
+      relations: ['user'],
+    });
 
     if (!image) {
       throw new NotFoundException(`Image with id ${id} not found`);

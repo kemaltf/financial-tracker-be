@@ -1,5 +1,6 @@
 import { SubAccount } from '@app/account/sub-account.entity';
 import { FinancialParty } from '@app/financial-party/entity/financial-party.entity';
+import { Image } from '@app/image/image.entity';
 import { Store } from '@app/store/store.entity';
 import { Transaction } from 'src/transaction/transaction.entity';
 import {
@@ -57,6 +58,9 @@ export class User {
 
   @OneToMany(() => FinancialParty, (financialParty) => financialParty.user)
   financialParties: FinancialParty[];
+
+  @OneToMany(() => Image, (image) => image.user)
+  images: Image[];
 
   @OneToMany(() => SubAccount, (transaction) => transaction.id)
   subAccount: SubAccount[];
