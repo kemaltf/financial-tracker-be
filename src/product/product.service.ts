@@ -215,26 +215,14 @@ export class ProductService {
   }
 
   // Method untuk mengambil semua produk
-  async findAll(
+  async findAllOpt(
     page = 1,
     limit = 10,
     sortBy = 'name',
     sortDirection: 'ASC' | 'DESC' = 'ASC',
     storeId: number,
     filters: Partial<Product> = {},
-  ): Promise<{
-    data: {
-      value: number;
-      label: string;
-      sku: string;
-      description: string;
-      stock: number;
-      price: number;
-    }[];
-    total: number;
-    currentPage: number;
-    totalPages: number;
-  }> {
+  ) {
     // Calculate offset
     const offset = (page - 1) * limit;
 
@@ -267,22 +255,64 @@ export class ProductService {
     // Build query with relations, filters, sorting, and pagination
     const [data, total] = await this.productRepository.findAndCount({
       where: { ...validFilters, store: { id: storeId } },
-      relations: ['categories', 'store', 'variants', 'images'],
+      relations: [
+        'categories',
+        'store',
+        'variants',
+        'images',
+        'variants.images',
+      ],
       order: { [sortBy]: sortDirection },
       take: limit,
       skip: offset,
     });
 
-    const mappedData = data.map((product) => ({
-      value: product.id,
-      label: product.name,
-      sku: product.sku,
-      description: product.description,
-      stock: product.stock,
-      price: product.price,
-      image: product.images[0]?.url,
-      id: product.id,
-    }));
+    const mappedData = data.flatMap((product) => {
+      if (product.variants.length > 0) {
+        // Jika punya varian, parent-nya di-disable
+        return [
+          {
+            value: product.id,
+            label: product.name,
+            sku: product.sku,
+            description: product.description,
+            stock: product.stock,
+            price: product.price,
+            image: product.images[0]?.url,
+            id: product.id,
+            disabled: true, // Parent-nya disabled
+          },
+          ...product.variants.map((variant) => {
+            console.log(variant);
+            return {
+              value: `${product.id}-${variant.id}`, // Kombinasi parentId-variantId
+              label: `${product.name} - ${variant.variant_value}`,
+              sku: variant.sku,
+              description: product.description,
+              stock: variant.stock,
+              price: variant.price,
+              image: variant.images?.[0]?.url || product.images[0]?.url, // Bisa pakai gambar dari parent
+              id: variant.id,
+              disabled: variant.stock == 0,
+            };
+          }),
+        ];
+      }
+
+      // Jika tidak punya varian, langsung return produk utama
+      return {
+        value: product.id,
+        label: product.name,
+        sku: product.sku,
+        description: product.description,
+        stock: product.stock,
+        price: product.price,
+        image: product.images[0]?.url,
+        id: product.id,
+        disabled: product.stock == 0, // Ensure the disabled property is included
+      };
+    });
+
     return {
       data: mappedData,
       total,

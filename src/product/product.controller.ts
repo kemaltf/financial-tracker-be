@@ -18,7 +18,7 @@ export class ProductController {
   constructor(private readonly productService: ProductService) {}
 
   // Mendapatkan semua produk
-  @Get()
+  @Get('opt')
   async findAll(
     @Query('page') page: number,
     @Query('limit') limit: number,
@@ -30,7 +30,7 @@ export class ProductController {
     if (!storeId) {
       throw new BadRequestException('storeId is required');
     }
-    return this.productService.findAll(
+    return this.productService.findAllOpt(
       Number(page) || 1,
       Number(limit) || 10,
       sortBy || 'name',

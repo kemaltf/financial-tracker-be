@@ -6,6 +6,7 @@ import {
   Param,
   Delete,
   Put,
+  Query,
 } from '@nestjs/common';
 import { CategoryService } from './category.service';
 import { CreateCategoryDto } from './dto/create-category.dto';
@@ -26,6 +27,11 @@ export class CategoryController {
   @Get()
   async findAll(@GetUser() user: User) {
     return this.categoryService.findAll(user);
+  }
+
+  @Get('opt')
+  async findAllOpt(@GetUser() user: User, @Query('storeId') storeId: number) {
+    return this.categoryService.findAllOpt(user, storeId);
   }
 
   @Get(':id')

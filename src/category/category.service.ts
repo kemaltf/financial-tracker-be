@@ -68,6 +68,31 @@ export class CategoryService {
     });
   }
 
+  // Get all categories
+  async findAllOpt(user: User, storeId: number) {
+    const result = await this.categoryRepository.find({
+      where: {
+        store: {
+          id: storeId,
+          user: {
+            id: user.id, // Filter berdasarkan userId
+          },
+        },
+      },
+      relations: ['store', 'store.user'], // Pastikan user tetap bisa diakses
+      select: {
+        id: true,
+        name: true,
+      },
+      order: { id: 'ASC' },
+    });
+
+    return result.map((category) => ({
+      value: category.id,
+      label: category.name,
+    }));
+  }
+
   // Get a single category by ID
   async findOne(id: number, user: User): Promise<Category> {
     const category = await this.categoryRepository.findOne({
