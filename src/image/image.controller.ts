@@ -1,11 +1,13 @@
 import {
   BadRequestException,
+  Body,
   Controller,
   Delete,
   Get,
   NotFoundException,
   Param,
   Post,
+  Query,
   UploadedFile,
   UploadedFiles,
   UseInterceptors,
@@ -15,6 +17,7 @@ import { ImageService } from './image.service';
 import { imageFileFilter } from './image-filter';
 import { GetUser } from '@app/common/decorators/get-user.decorator';
 import { User } from '@app/user/user.entity';
+import { UploadImageDto } from './dto/upload-image.dto';
 
 @Controller('images')
 export class ImageController {
@@ -30,13 +33,18 @@ export class ImageController {
   async uploadSingle(
     @UploadedFile() file: Express.Multer.File,
     @GetUser() user: User,
+    @Body() uploadImageDto: UploadImageDto, // 🔥 Gunakan DTO
   ) {
     // Validasi apakah file ada
     if (!file) {
       throw new BadRequestException('No file uploaded');
     }
 
-    return await this.imageService.uploadSingleImage(file, user);
+    return await this.imageService.uploadSingleImage(
+      file,
+      user,
+      uploadImageDto,
+    );
   }
 
   @Post('upload-multiple')
@@ -50,18 +58,26 @@ export class ImageController {
   async uploadMultiple(
     @UploadedFiles() files: Express.Multer.File[],
     @GetUser() user: User,
+    @Body() uploadImageDto: UploadImageDto, // 🔥 Gunakan DTO
   ) {
     // Validasi apakah ada file yang di-upload
     if (!files || files.length === 0) {
       throw new BadRequestException('No files uploaded');
     }
-    return await this.imageService.uploadMultipleImages(files, user);
+    return await this.imageService.uploadMultipleImages(
+      files,
+      user,
+      uploadImageDto,
+    );
   }
 
   @Get()
-  async getAllImages(@GetUser() user: User) {
+  async getAllImages(
+    @GetUser() user: User,
+    @Query('storeId') storeId?: number,
+  ) {
     try {
-      const images = await this.imageService.getAllImagesFromDB(user);
+      const images = await this.imageService.getAllImagesFromDB(user, storeId);
       return { images };
     } catch (error) {
       console.log(error);

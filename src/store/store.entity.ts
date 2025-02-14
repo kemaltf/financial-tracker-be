@@ -1,4 +1,5 @@
 import { Category } from '@app/category/category.entity';
+import { Image } from '@app/image/image.entity';
 import { User } from '@app/user/user.entity';
 import { VariantType } from '@app/variant/variant-type.entity';
 import { Product } from 'src/product/entity/product.entity';
@@ -41,6 +42,9 @@ export class Store {
 
   @OneToMany(() => Category, (category) => category.store)
   categories: Category[];
+
+  @OneToMany(() => Image, (image) => image.store)
+  images: Image[];
 
   @OneToMany(() => VariantType, (variantType) => variantType.store)
   variantType: VariantType[];

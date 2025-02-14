@@ -1,4 +1,8 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { AWSS3Service } from '../aws/aws-s3.service';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
@@ -6,6 +10,8 @@ import { Image } from './image.entity';
 import { HandleErrors } from 'src/common/decorators';
 import { GetUser } from '@app/common/decorators/get-user.decorator';
 import { User } from '@app/user/user.entity';
+import { UploadImageDto } from './dto/upload-image.dto';
+import { Store } from '@app/store/store.entity';
 
 @Injectable()
 export class ImageService {
@@ -13,13 +19,25 @@ export class ImageService {
     private readonly s3Service: AWSS3Service,
     @InjectRepository(Image)
     private readonly imageRepository: Repository<Image>,
+    @InjectRepository(Store)
+    private readonly storeRepository: Repository<Store>,
   ) {}
 
   @HandleErrors()
   async uploadSingleImage(
     file: Express.Multer.File,
     @GetUser() user: User,
+    uploadImageDto?: UploadImageDto, // 🔥 Store ID tetap opsional
   ): Promise<Image> {
+    let store: Store | null = null;
+    if (uploadImageDto.storeId) {
+      store = await this.storeRepository.findOne({
+        where: { id: uploadImageDto.storeId },
+      });
+      if (!store) {
+        throw new BadRequestException('Store not found');
+      }
+    }
     const uploadResult = await this.s3Service.uploadSingle(
       file.originalname,
       file.buffer,
@@ -32,6 +50,7 @@ export class ImageService {
       size: file.size,
       mimeType: file.mimetype,
       user: user,
+      store,
     });
 
     return await this.imageRepository.save(image);
@@ -40,7 +59,17 @@ export class ImageService {
   async uploadMultipleImages(
     files: Express.Multer.File[],
     user: User,
+    uploadImageDto?: UploadImageDto, // 🔥 Store ID tetap opsional
   ): Promise<Image[]> {
+    let store: Store | null = null;
+    if (uploadImageDto.storeId) {
+      store = await this.storeRepository.findOne({
+        where: { id: uploadImageDto.storeId },
+      });
+      if (!store) {
+        throw new BadRequestException('Store not found');
+      }
+    }
     const uploadResults = await this.s3Service.uploadMultiple(
       files.map((file) => ({
         fileName: file.originalname,
@@ -56,6 +85,7 @@ export class ImageService {
         size: file.size,
         mimeType: file.mimetype,
         user: user,
+        store,
       }),
     );
 
@@ -63,11 +93,29 @@ export class ImageService {
   }
 
   // Mengambil semua gambar dari database
-  async getAllImagesFromDB(user: User) {
+  async getAllImagesFromDB(user: User, storeId?: number) {
+    const whereCondition: any = { user: { id: user.id } };
+
+    if (storeId) {
+      whereCondition.store = { id: storeId }; // 🔥 Filter hanya jika storeId ada
+    }
+
     return await this.imageRepository.find({
-      where: { user: { id: user.id } },
-      relations: ['user'],
-    }); // Mengambil semua data gambar
+      where: whereCondition,
+      relations: ['user', 'store'],
+      select: {
+        createdAt: true,
+        id: true,
+        key: true,
+        mimeType: true,
+        products: true,
+        productVariants: true,
+        size: true,
+        updatedAt: true,
+        url: true,
+        user: {},
+      },
+    });
   }
 
   // Menghapus gambar dari S3 dan database
@@ -76,6 +124,17 @@ export class ImageService {
     const image = await this.imageRepository.findOne({
       where: { id, user: { id: user.id } },
       relations: ['user'],
+      select: {
+        createdAt: true,
+        id: true,
+        key: true,
+        mimeType: true,
+        products: true,
+        productVariants: true,
+        size: true,
+        updatedAt: true,
+        url: true,
+      },
     });
 
     if (!image) {
