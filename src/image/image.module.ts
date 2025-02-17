@@ -10,5 +10,6 @@ import { Store } from '@app/store/store.entity';
   imports: [TypeOrmModule.forFeature([Image, Store]), AWSS3Module],
   providers: [ImageService],
   controllers: [ImageController],
+  exports: [ImageService],
 })
 export class ImageModule {}

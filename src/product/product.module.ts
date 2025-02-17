@@ -8,6 +8,7 @@ import { Category } from 'src/category/category.entity';
 import { Store } from 'src/store/store.entity';
 import { Image } from 'src/image/image.entity';
 import { VariantType } from 'src/variant/variant-type.entity';
+import { ImageModule } from '@app/image/image.module';
 
 @Module({
   imports: [
@@ -19,6 +20,7 @@ import { VariantType } from 'src/variant/variant-type.entity';
       Image,
       VariantType,
     ]),
+    ImageModule,
   ],
   providers: [ProductService],
   controllers: [ProductController],

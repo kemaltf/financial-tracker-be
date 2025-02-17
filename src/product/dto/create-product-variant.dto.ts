@@ -15,11 +15,11 @@ export class CreateProductVariantDto {
 
   @IsString()
   @IsNotEmpty()
-  variant_value: string;
+  variantValue: string;
 
   @IsString()
   @IsOptional()
-  sku: string;
+  sku?: string;
 
   @IsDecimal()
   @IsNotEmpty()

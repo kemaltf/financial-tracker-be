@@ -30,7 +30,8 @@ export class ImageService {
     uploadImageDto?: UploadImageDto, // 🔥 Store ID tetap opsional
   ): Promise<Image> {
     let store: Store | null = null;
-    if (uploadImageDto.storeId) {
+    if (uploadImageDto?.storeId) {
+      console.log('first');
       store = await this.storeRepository.findOne({
         where: { id: uploadImageDto.storeId },
       });
@@ -43,6 +44,7 @@ export class ImageService {
       file.buffer,
       file.mimetype,
     );
+    console.log('debug', uploadResult);
 
     const image = this.imageRepository.create({
       key: uploadResult.fileName,

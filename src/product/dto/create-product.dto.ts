@@ -4,7 +4,6 @@ import {
   IsNumber,
   IsArray,
   IsOptional,
-  IsDecimal,
   IsNotEmpty,
   ValidateNested,
   IsInt,
@@ -18,7 +17,7 @@ export class CreateProductDto {
 
   @IsString()
   @IsOptional()
-  sku: string;
+  sku?: string;
 
   @IsString()
   @IsNotEmpty()
@@ -28,19 +27,19 @@ export class CreateProductDto {
   @IsNotEmpty()
   stock: number;
 
-  @IsDecimal()
+  @IsNumber()
   @IsNotEmpty()
-  price: number;
+  price: number; // ⬅️ Ganti dari @IsDecimal() ke @IsNumber()
 
   @IsArray()
+  @IsInt({ each: true })
   @IsNotEmpty()
   categories: number[]; // Array of category IDs
 
   @IsNumber()
   @IsNotEmpty()
-  store: number; // Store ID
+  storeId: number; // Store ID
 
-  // Properti lainnya
   @IsOptional()
   @IsArray()
   @IsInt({ each: true })

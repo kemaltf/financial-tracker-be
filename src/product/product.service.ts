@@ -18,22 +18,25 @@ import { ProductVariant } from './entity/product-variant.entity';
 import { HandleErrors } from 'src/common/decorators';
 import { randomUUID } from 'crypto';
 import { UpdateProductDto } from './dto/update-product.dto';
+import { User } from '@app/user/user.entity';
+import { ImageService } from '@app/image/image.service';
 
 @Injectable()
 export class ProductService {
   constructor(
     @InjectRepository(Product)
     private productRepository: Repository<Product>,
-    @InjectRepository(ProductVariant)
-    private productVariantRepository: Repository<ProductVariant>,
-    @InjectRepository(Category)
-    private categoryRepository: Repository<Category>,
-    @InjectRepository(Store)
-    private storeRepository: Repository<Store>,
-    @InjectRepository(VariantType)
-    private variantTypeRepository: Repository<VariantType>,
-    @InjectRepository(Image)
-    private imageRepository: Repository<Image>,
+    // @InjectRepository(ProductVariant)
+    // private productVariantRepository: Repository<ProductVariant>,
+    // @InjectRepository(Category)
+    // private categoryRepository: Repository<Category>,
+    // @InjectRepository(Store)
+    // private storeRepository: Repository<Store>,
+    // @InjectRepository(VariantType)
+    // private variantTypeRepository: Repository<VariantType>,
+    // @InjectRepository(Image)
+    // private imageRepository: Repository<Image>,
+    private imageService: ImageService,
   ) {}
 
   // Function to generate SKU
@@ -59,7 +62,42 @@ export class ProductService {
 
   // Method untuk membuat produk beserta variannya
   @HandleErrors()
-  async create(createProductDto: CreateProductDto): Promise<Product> {
+  async create(
+    createProductDto: CreateProductDto,
+    productImages: Express.Multer.File[],
+    variantImagesMap: Record<number, Express.Multer.File[]>,
+    user: User,
+  ): Promise<Product> {
+    const productImagesUploaded = await this.imageService.uploadMultipleImages(
+      productImages,
+      user,
+      { storeId: createProductDto.storeId },
+    );
+
+    createProductDto.imageIds = [
+      ...createProductDto.imageIds, // ID gambar yang sudah ada
+      ...productImagesUploaded.map((image) => image.id), // ID gambar baru
+    ];
+
+    const variantImageIdsMap: Record<number, number[]> = {};
+
+    for (const [variantIndex, images] of Object.entries(variantImagesMap)) {
+      const uploadedVariantImages =
+        await this.imageService.uploadMultipleImages(images, user, {
+          storeId: createProductDto.storeId,
+        });
+
+      variantImageIdsMap[parseInt(variantIndex, 10)] =
+        uploadedVariantImages.map((image) => image.id);
+    }
+
+    createProductDto.variants = createProductDto.variants.map(
+      (variant, index) => ({
+        ...variant,
+        imageIds: variantImageIdsMap[index] || [],
+      }),
+    );
+
     // Mulai transaksi untuk memastikan konsistensi data
     return await this.productRepository.manager.transaction(
       async (transactionalEntityManager) => {
@@ -77,7 +115,7 @@ export class ProductService {
 
         // 2. Menemukan store berdasarkan ID yang diberikan
         const store = await transactionalEntityManager.findOne(Store, {
-          where: { id: createProductDto.store },
+          where: { id: createProductDto.storeId },
         });
 
         if (!store) {
@@ -133,7 +171,7 @@ export class ProductService {
             // Generate SKU untuk varian jika tidak ada SKU yang diberikan
             if (!variantDto.sku) {
               variantDto.sku = this.generateSku(
-                `${createProductDto.name}_${variantDto.variant_value}`,
+                `${createProductDto.name}_${variantDto.variantValue}`,
               );
             } else {
               // Pengecekan SKU untuk varian apakah sudah ada di database
@@ -151,7 +189,7 @@ export class ProductService {
 
             const productVariant = new ProductVariant();
             productVariant.variantType = variantType;
-            productVariant.variant_value = variantDto.variant_value;
+            productVariant.variant_value = variantDto.variantValue;
             productVariant.sku = variantDto.sku;
             productVariant.price = variantDto.price;
             productVariant.stock = variantDto.stock;
