@@ -7,6 +7,7 @@ import {
   IsNotEmpty,
   ValidateNested,
   IsInt,
+  ValidateIf,
 } from 'class-validator';
 import { CreateProductVariantDto } from './create-product-variant.dto';
 
@@ -29,7 +30,7 @@ export class CreateProductDto {
 
   @IsNumber()
   @IsNotEmpty()
-  price: number; // ⬅️ Ganti dari @IsDecimal() ke @IsNumber()
+  price: number;
 
   @IsArray()
   @IsInt({ each: true })
@@ -41,13 +42,18 @@ export class CreateProductDto {
   storeId: number; // Store ID
 
   @IsOptional()
+  @ValidateIf(
+    (_, value) =>
+      value === null ||
+      (Array.isArray(value) && value.every((v) => typeof v === 'number')),
+  )
   @IsArray()
   @IsInt({ each: true })
-  imageIds?: number[]; // Optional, array of image IDs
+  imageIds?: number[] | null;
 
   @IsOptional()
   @IsArray()
   @ValidateNested({ each: true })
   @Type(() => CreateProductVariantDto)
-  variants?: CreateProductVariantDto[];
+  variants?: CreateProductVariantDto[]; // Array of variants, each with its own combination of variant types and values
 }

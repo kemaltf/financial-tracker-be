@@ -1,7 +1,6 @@
 import {
   IsString,
   IsNumber,
-  IsDecimal,
   IsNotEmpty,
   IsOptional,
   IsInt,
@@ -9,19 +8,21 @@ import {
 } from 'class-validator';
 
 export class CreateProductVariantDto {
-  @IsInt()
+  @IsArray()
+  @IsInt({ each: true })
   @IsNotEmpty()
-  variantTypeId: number; // ID of the variant type
+  variantTypeIds: number[];
 
-  @IsString()
+  @IsArray()
+  @IsString({ each: true })
   @IsNotEmpty()
-  variantValue: string;
+  variantValues: string[];
 
   @IsString()
   @IsOptional()
   sku?: string;
 
-  @IsDecimal()
+  @IsNumber()
   @IsNotEmpty()
   price: number;
 
@@ -29,9 +30,8 @@ export class CreateProductVariantDto {
   @IsNotEmpty()
   stock: number;
 
-  // Properti lainnya
   @IsOptional()
   @IsArray()
   @IsInt({ each: true })
-  imageIds?: number[]; // Optional, array of image IDs
+  imageIds?: number[];
 }
