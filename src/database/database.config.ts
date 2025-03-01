@@ -16,5 +16,5 @@ export const getDatabaseConfig = (
     synchronize: configService.get<boolean>('DB_SYNC', false), // Default ke false
     type: 'mysql', // Pastikan ini adalah literal, bukan string biasa
     username: configService.get<string>('DB_USERNAME'),
-    timezone: 'UTC',
+    timezone: 'Z',
   }) as const;

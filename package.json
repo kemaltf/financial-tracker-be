@@ -22,6 +22,7 @@
     "db:generate": "npx ts-node -P ./tsconfig.json -r tsconfig-paths/register ./node_modules/typeorm/cli.js migration:generate -d ./src/database/orm.config.ts ./dist/database",
     "db:dropall": "npx typeorm schema:drop -d ./dist/database/orm.config.js",
     "db:create": "npx typeorm migration:run -d ./dist/database/orm.config.js",
+    "db:createDB": "ts-node src/database/create-database.ts",
     "db:sync": "npx typeorm schema:sync -d ./dist/database/orm.config.js",
     "db:start": "docker-compose up -d",
     "db:stop": "docker-compose down",
