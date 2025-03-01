@@ -2,29 +2,25 @@ import {
   Entity,
   PrimaryGeneratedColumn,
   Column,
-  CreateDateColumn,
-  UpdateDateColumn,
   ManyToOne,
+  OneToMany,
+  Unique,
   ManyToMany,
 } from 'typeorm';
 import { Product } from './product.entity';
-import { VariantType } from '../../variant/variant-type.entity';
-import { Image } from 'src/image/image.entity';
 import { ColumnNumericTransformer } from '@app/common/transformer/column-numeric.transformer';
+import { ProductVariantOptions } from './product-variant-option.entity';
+import { Store } from '@app/store/store.entity';
+import { Image } from '@app/image/image.entity';
 
+// e.g
+// product (mtO) | sku              | price | stock | options
+// 1             | 'TS001-S-Merah'  | 2     | 1     | [1,2,3]
 @Entity('product_variants')
+@Unique(['sku', 'store'])
 export class ProductVariant {
   @PrimaryGeneratedColumn()
   id: number;
-
-  @ManyToOne(() => Product, (product) => product.variants)
-  product: Product;
-
-  @ManyToOne(() => VariantType, (variantType) => variantType.productVariants)
-  variantType: VariantType;
-
-  @Column({ type: 'varchar', length: 100 })
-  variant_value: string; // Contoh: "Merah", "L", "Basic Model"
 
   @Column({ type: 'varchar', length: 100, unique: true })
   sku: string;
@@ -40,11 +36,17 @@ export class ProductVariant {
   @Column({ type: 'int' })
   stock: number;
 
-  @CreateDateColumn({ type: 'datetime', name: 'created_at' })
-  createdAt: Date;
+  @OneToMany(
+    () => ProductVariantOptions,
+    (productVariantOptions) => productVariantOptions.productVariant,
+  )
+  options: ProductVariantOptions[];
 
-  @UpdateDateColumn({ type: 'datetime', name: 'updated_at' })
-  updatedAt: Date;
+  @ManyToOne(() => Product, (product) => product.variants)
+  product: Product;
+
+  @ManyToOne(() => Store, (store) => store.productVariants)
+  store: Store;
 
   @ManyToMany(() => Image, (image) => image.productVariants)
   images: Image[];

@@ -1,5 +1,6 @@
 import { Category } from '@app/category/category.entity';
 import { Image } from '@app/image/image.entity';
+import { ProductVariant } from '@app/product/entity/product-variant.entity';
 import { User } from '@app/user/user.entity';
 import { VariantType } from '@app/variant/variant-type.entity';
 import { Product } from 'src/product/entity/product.entity';
@@ -36,6 +37,9 @@ export class Store {
 
   @OneToMany(() => Product, (product) => product.store)
   products: Product[];
+
+  @OneToMany(() => ProductVariant, (productVariant) => productVariant.store)
+  productVariants: ProductVariant[];
 
   @OneToMany(() => Transaction, (transaction) => transaction.store)
   transactions: Transaction[];
