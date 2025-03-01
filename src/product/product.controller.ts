@@ -4,9 +4,9 @@ import {
   Param,
   Post,
   Body,
-  Put,
+  // Put,
   Delete,
-  Query,
+  // Query,
   BadRequestException,
   UseInterceptors,
   UploadedFiles,
@@ -25,27 +25,27 @@ export class ProductController {
   constructor(private readonly productService: ProductService) {}
 
   // Mendapatkan semua produk
-  @Get('opt')
-  async findAll(
-    @Query('page') page: number,
-    @Query('limit') limit: number,
-    @Query('sortBy') sortBy: string,
-    @Query('sortDirection') sortDirection: 'ASC' | 'DESC',
-    @Query('storeId') storeId: number,
-    @Query('filters') filters: Record<string, any>,
-  ) {
-    if (!storeId) {
-      throw new BadRequestException('storeId is required');
-    }
-    return this.productService.findAllOpt(
-      Number(page) || 1,
-      Number(limit) || 10,
-      sortBy || 'name',
-      sortDirection || 'ASC',
-      storeId,
-      filters,
-    );
-  }
+  // @Get('opt')
+  // async findAll(
+  //   @Query('page') page: number,
+  //   @Query('limit') limit: number,
+  //   @Query('sortBy') sortBy: string,
+  //   @Query('sortDirection') sortDirection: 'ASC' | 'DESC',
+  //   @Query('storeId') storeId: number,
+  //   @Query('filters') filters: Record<string, any>,
+  // ) {
+  //   if (!storeId) {
+  //     throw new BadRequestException('storeId is required');
+  //   }
+  //   return this.productService.findAllOpt(
+  //     Number(page) || 1,
+  //     Number(limit) || 10,
+  //     sortBy || 'name',
+  //     sortDirection || 'ASC',
+  //     storeId,
+  //     filters,
+  //   );
+  // }
 
   // Mendapatkan produk berdasarkan ID
   @Get(':id')
@@ -89,17 +89,18 @@ export class ProductController {
     const variantImagesMap: Record<number, Express.Multer.File[]> = {};
 
     files.forEach((file) => {
-      if (file.fieldname === 'images') {
-        productImages.push(file);
-      } else {
-        const match = file.fieldname.match(/^variantImages\[(\d+)\]$/);
-        if (match) {
-          const index = parseInt(match[1], 10);
-          if (!variantImagesMap[index]) {
-            variantImagesMap[index] = [];
-          }
-          variantImagesMap[index].push(file);
+      const productMatch = file.fieldname.match(/^images\[(\d+)\]$/);
+      const variantMatch = file.fieldname.match(/^variantImages\[(\d+)\]$/);
+
+      if (productMatch) {
+        const index = parseInt(productMatch[1], 10);
+        productImages[index] = file;
+      } else if (variantMatch) {
+        const index = parseInt(variantMatch[1], 10);
+        if (!variantImagesMap[index]) {
+          variantImagesMap[index] = [];
         }
+        variantImagesMap[index].push(file);
       }
     });
 
@@ -135,14 +136,14 @@ export class ProductController {
     );
   }
 
-  // Mengupdate produk berdasarkan ID
-  @Put(':id')
-  async update(
-    @Param('id') id: number,
-    @Body() updateProductDto: any,
-  ): Promise<Product> {
-    return this.productService.update(id, updateProductDto);
-  }
+  // // Mengupdate produk berdasarkan ID
+  // @Put(':id')
+  // async update(
+  //   @Param('id') id: number,
+  //   @Body() updateProductDto: any,
+  // ): Promise<Product> {
+  //   return this.productService.update(id, updateProductDto);
+  // }
 
   // Menghapus produk berdasarkan ID
   @Delete(':id')

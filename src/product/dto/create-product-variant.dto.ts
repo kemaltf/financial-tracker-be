@@ -1,3 +1,4 @@
+import { Type } from 'class-transformer';
 import {
   IsString,
   IsNumber,
@@ -5,18 +6,16 @@ import {
   IsOptional,
   IsInt,
   IsArray,
+  IsObject,
+  ValidateNested,
 } from 'class-validator';
 
 export class CreateProductVariantDto {
-  @IsArray()
-  @IsInt({ each: true })
+  @IsObject()
+  @ValidateNested()
+  @Type(() => Object)
   @IsNotEmpty()
-  variantTypeIds: number[];
-
-  @IsArray()
-  @IsString({ each: true })
-  @IsNotEmpty()
-  variantValues: string[];
+  variantOptions: Record<string, string>;
 
   @IsString()
   @IsOptional()

@@ -4,15 +4,13 @@ import {
   Column,
   ManyToOne,
   OneToMany,
+  Unique,
 } from 'typeorm';
 import { VariantType } from './variant-type.entity';
 import { VariantOption } from '@app/product/entity/variant-option.entity';
 
-// e.g
-// name     | variantType (mtO) | variantOption (otM)
-// 'Yellow' | 1                 | [1,2,3]
-
 @Entity()
+@Unique(['name', 'variantType']) // Menjadikan kombinasi name + variantType unik
 export class VariantName {
   @PrimaryGeneratedColumn()
   id: number;
