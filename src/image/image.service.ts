@@ -12,6 +12,7 @@ import { GetUser } from '@app/common/decorators/get-user.decorator';
 import { User } from '@app/user/user.entity';
 import { UploadImageDto } from './dto/upload-image.dto';
 import { Store } from '@app/store/store.entity';
+import { v4 as uuidv4 } from 'uuid';
 
 @Injectable()
 export class ImageService {
@@ -82,7 +83,7 @@ export class ImageService {
 
     const images = files.map((file, index) =>
       this.imageRepository.create({
-        key: uploadResults[index].fileName,
+        key: `${uploadResults[index].fileName} ${uuidv4().split('-')[0]}`,
         url: uploadResults[index].url,
         size: file.size,
         mimeType: file.mimetype,

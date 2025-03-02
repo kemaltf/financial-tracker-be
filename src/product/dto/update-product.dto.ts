@@ -3,9 +3,11 @@ import {
   IsString,
   IsNumber,
   IsArray,
-  IsUUID,
   IsInt,
   ValidateNested,
+  ValidateIf,
+  IsObject,
+  IsNotEmpty,
 } from 'class-validator';
 import { Type } from 'class-transformer';
 
@@ -14,13 +16,11 @@ class UpdateProductVariantDto {
   @IsInt()
   id?: number; // ID varian (hanya untuk varian yang sudah ada)
 
-  @IsOptional()
-  @IsUUID()
-  variantTypeId?: number; // ID tipe varian
-
-  @IsOptional()
-  @IsString()
-  variant_value?: string; // Nilai varian
+  @IsObject()
+  @ValidateNested()
+  @Type(() => Object)
+  @IsNotEmpty()
+  variantOptions: Record<string, string>;
 
   @IsOptional()
   @IsString()
@@ -36,8 +36,8 @@ class UpdateProductVariantDto {
 
   @IsOptional()
   @IsArray()
-  @IsUUID('4', { each: true })
-  imageIds?: string[]; // ID gambar varian
+  @IsInt({ each: true })
+  imageIds?: number[];
 }
 
 export class UpdateProductDto {
@@ -61,9 +61,9 @@ export class UpdateProductDto {
   @IsNumber()
   stock?: number; // Stok produk
 
-  @IsOptional()
-  @IsInt()
-  store?: number; // ID store yang terkait
+  // @IsOptional()
+  // @IsInt()
+  // storeId?: number; // ID store yang terkait
 
   @IsOptional()
   @IsArray()
@@ -71,9 +71,14 @@ export class UpdateProductDto {
   categories?: number[]; // ID kategori
 
   @IsOptional()
+  @ValidateIf(
+    (_, value) =>
+      value === null ||
+      (Array.isArray(value) && value.every((v) => typeof v === 'number')),
+  )
   @IsArray()
-  @IsUUID('4', { each: true })
-  imageIds?: string[]; // ID gambar utama produk
+  @IsInt({ each: true })
+  imageIds?: number[] | null;
 
   @IsOptional()
   @IsArray()

@@ -22,6 +22,9 @@ export class ProductVariant {
   @PrimaryGeneratedColumn()
   id: number;
 
+  @Column({ type: 'varchar', length: 255 })
+  name: string;
+
   @Column({ type: 'varchar', length: 100, unique: true })
   sku: string;
 
@@ -36,18 +39,25 @@ export class ProductVariant {
   @Column({ type: 'int' })
   stock: number;
 
+  // di cascade dulu bagian yang mau di delete on cascadenya
   @OneToMany(
     () => ProductVariantOptions,
     (productVariantOptions) => productVariantOptions.productVariant,
+    { cascade: true },
   )
   options: ProductVariantOptions[];
 
-  @ManyToOne(() => Product, (product) => product.variants)
+  @ManyToOne(() => Product, (product) => product.variants, {
+    onDelete: 'CASCADE',
+  })
   product: Product;
 
   @ManyToOne(() => Store, (store) => store.productVariants)
   store: Store;
 
-  @ManyToMany(() => Image, (image) => image.productVariants)
+  @ManyToMany(() => Image, (image) => image.productVariants, {
+    cascade: false, // Hindari cascade agar Image tidak ikut terhapus
+    onDelete: 'CASCADE', // Hanya hapus dari tabel pivot
+  })
   images: Image[];
 }

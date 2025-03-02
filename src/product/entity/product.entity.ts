@@ -45,16 +45,24 @@ export class Product {
   })
   price: number;
 
-  @ManyToMany(() => Category, (category) => category.products)
+  @ManyToMany(() => Category, (category) => category.products, {
+    cascade: false, // Hindari cascade agar Image tidak ikut terhapus
+    onDelete: 'CASCADE', // Hanya hapus dari tabel pivot
+  })
   categories: Category[];
 
   @ManyToOne(() => Store, (store) => store.products)
   store: Store;
 
-  @OneToMany(() => ProductVariant, (variant) => variant.product)
+  @OneToMany(() => ProductVariant, (variant) => variant.product, {
+    cascade: ['remove'],
+  })
   variants: ProductVariant[];
 
-  @ManyToMany(() => Image, (image) => image.products)
+  @ManyToMany(() => Image, (image) => image.products, {
+    cascade: false, // Hindari cascade agar Image tidak ikut terhapus
+    onDelete: 'CASCADE', // Hanya hapus dari tabel pivot
+  })
   images: Image[];
 
   @CreateDateColumn({ type: 'datetime', name: 'created_at' })

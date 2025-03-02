@@ -7,7 +7,9 @@ export class ProductVariantOptions {
   @PrimaryGeneratedColumn()
   id: number;
 
-  @ManyToOne(() => ProductVariant, (productVariant) => productVariant.options)
+  @ManyToOne(() => ProductVariant, (productVariant) => productVariant.options, {
+    onDelete: 'CASCADE',
+  })
   productVariant: ProductVariant;
 
   @ManyToOne(
