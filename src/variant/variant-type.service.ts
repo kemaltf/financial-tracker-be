@@ -47,10 +47,11 @@ export class VariantTypeService {
   }
 
   // Get all variant types
-  async findAll(user: User): Promise<VariantType[]> {
+  async findAll(user: User, storeId: number): Promise<VariantType[]> {
     return this.variantTypeRepository.find({
       where: {
         store: {
+          id: storeId,
           user: {
             id: user.id, // Filter berdasarkan userId
           },
@@ -68,6 +69,7 @@ export class VariantTypeService {
           },
         },
       },
+      order: { id: 'ASC' },
     });
   }
 

@@ -1,7 +1,9 @@
 import {
+  ConflictException,
   ForbiddenException,
   HttpException,
   InternalServerErrorException,
+  NotFoundException,
   UnauthorizedException,
 } from '@nestjs/common';
 import { QueryFailedError } from 'typeorm';
@@ -38,7 +40,9 @@ export function HandleErrors() {
         // Jika error adalah instance dari HttpException atau UnauthorizedException
         if (
           error instanceof HttpException ||
-          error instanceof UnauthorizedException
+          error instanceof UnauthorizedException ||
+          error instanceof NotFoundException ||
+          error instanceof ConflictException
         ) {
           throw error;
         }

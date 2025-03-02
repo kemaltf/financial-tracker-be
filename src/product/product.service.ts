@@ -12,11 +12,16 @@ import { CreateProductDto } from './dto/create-product.dto';
 import { Category } from 'src/category/category.entity';
 import { Store } from 'src/store/store.entity';
 import { VariantType } from 'src/variant/variant-type.entity';
-import { Image } from 'src/image/image.entity';
 import { Product } from './entity/product.entity';
-import { ProductVariant } from './entity/product-variant.entity';
 import { HandleErrors } from 'src/common/decorators';
 import { randomUUID } from 'crypto';
+import { User } from '@app/user/user.entity';
+import { ImageService } from '@app/image/image.service';
+import { ProductVariant } from './entity/product-variant.entity';
+import { Image } from '@app/image/image.entity';
+import { VariantName } from '@app/variant/variant-name.entity';
+import { VariantOption } from './entity/variant-option.entity';
+import { ProductVariantOptions } from './entity/product-variant-option.entity';
 import { UpdateProductDto } from './dto/update-product.dto';
 
 @Injectable()
@@ -24,16 +29,8 @@ export class ProductService {
   constructor(
     @InjectRepository(Product)
     private productRepository: Repository<Product>,
-    @InjectRepository(ProductVariant)
-    private productVariantRepository: Repository<ProductVariant>,
-    @InjectRepository(Category)
-    private categoryRepository: Repository<Category>,
-    @InjectRepository(Store)
-    private storeRepository: Repository<Store>,
-    @InjectRepository(VariantType)
-    private variantTypeRepository: Repository<VariantType>,
-    @InjectRepository(Image)
-    private imageRepository: Repository<Image>,
+
+    private imageService: ImageService,
   ) {}
 
   // Function to generate SKU
@@ -57,33 +54,79 @@ export class ProductService {
     return `${acronym}${year}-${timestamp}`;
   }
 
-  // Method untuk membuat produk beserta variannya
   @HandleErrors()
-  async create(createProductDto: CreateProductDto): Promise<Product> {
-    // Mulai transaksi untuk memastikan konsistensi data
+  async create(
+    createProductDto: CreateProductDto,
+    productImages: Express.Multer.File[],
+    variantImagesMap: Record<number, Express.Multer.File[]>,
+    user: User,
+  ) {
+    // ========== IMAGE PARENT UPLOAD ===========
+    let productImagesUploaded: Image[] = [];
+    if (productImages.length > 0) {
+      productImagesUploaded = await this.imageService.uploadMultipleImages(
+        productImages,
+        user,
+        {
+          storeId: createProductDto.storeId,
+        },
+      );
+    }
+    // Pastikan imageIds tidak null/undefined sebelum digabungkan
+    const updatedImageIds: (number | undefined)[] = [
+      ...(createProductDto.imageIds ?? []),
+    ];
+
+    // Gabungkan berdasarkan indeks yang sesuai
+    productImagesUploaded.forEach((image, index) => {
+      updatedImageIds[index] = image.id;
+    });
+
+    // Simpan hasilnya kembali ke DTO
+    createProductDto.imageIds = updatedImageIds.filter(
+      (id) => id !== undefined && id !== null,
+    );
+
+    // ========= IMAGE VARIANT UPLOAD ============
+    const variantImageIdsMap: Record<number, number[]> = {};
+    if (createProductDto.variants && createProductDto.variants.length > 0) {
+      for (const [variantIndex, images] of Object.entries(variantImagesMap)) {
+        const uploadedVariantImages =
+          await this.imageService.uploadMultipleImages(images, user, {
+            storeId: createProductDto.storeId,
+          });
+
+        variantImageIdsMap[parseInt(variantIndex, 10)] =
+          uploadedVariantImages.map((image) => image.id);
+      }
+      // Simpann hasil savenya ke imageIds
+      createProductDto.variants = createProductDto.variants.map(
+        (variant, index) => ({
+          ...variant,
+          imageIds: variantImageIdsMap[index] || [],
+        }),
+      );
+    }
+
     return await this.productRepository.manager.transaction(
       async (transactionalEntityManager) => {
-        // 1. Membuat kategori-kategori berdasarkan ID yang diberikan
+        // ========== STORE ==========
+        const store = await transactionalEntityManager.findOne(Store, {
+          where: { id: createProductDto.storeId },
+        });
+        if (!store) {
+          throw new NotFoundException('Store not found');
+        }
+
+        // ========== CATEGORIES ==========
         const categories = await transactionalEntityManager.findBy(Category, {
           id: In(createProductDto.categories),
         });
-
-        if (!categories.length) {
-          throw new HttpException(
-            'Categories/category not found',
-            HttpStatus.NOT_FOUND,
-          );
+        if (categories.length !== createProductDto.categories.length) {
+          throw new NotFoundException('Some categories not found');
         }
 
-        // 2. Menemukan store berdasarkan ID yang diberikan
-        const store = await transactionalEntityManager.findOne(Store, {
-          where: { id: createProductDto.store },
-        });
-
-        if (!store) {
-          throw new HttpException('Store not found', HttpStatus.NOT_FOUND);
-        }
-
+        // ========== SKU ============
         // Jika SKU tidak disediakan, buat SKU secara otomatis
         if (!createProductDto.sku) {
           createProductDto.sku = this.generateSku(createProductDto.name);
@@ -101,7 +144,7 @@ export class ProductService {
           }
         }
 
-        // 3. Membuat produk
+        // ========== PRODUCT ==========
         const product = new Product();
         product.name = createProductDto.name;
         product.sku = createProductDto.sku;
@@ -116,72 +159,7 @@ export class ProductService {
           product,
         );
 
-        // 4. Simpan varian produk (jika ada)
-        const productVariants = [];
-        if (createProductDto.variants && createProductDto.variants.length > 0) {
-          for (const variantDto of createProductDto.variants) {
-            const variantType = await transactionalEntityManager.findOne(
-              VariantType,
-              { where: { id: variantDto.variantTypeId } },
-            );
-            if (!variantType) {
-              throw new NotFoundException(
-                `VariantType with ID ${variantDto.variantTypeId} not found`,
-              );
-            }
-
-            // Generate SKU untuk varian jika tidak ada SKU yang diberikan
-            if (!variantDto.sku) {
-              variantDto.sku = this.generateSku(
-                `${createProductDto.name}_${variantDto.variant_value}`,
-              );
-            } else {
-              // Pengecekan SKU untuk varian apakah sudah ada di database
-              const existingVariant = await transactionalEntityManager.findOne(
-                ProductVariant,
-                { where: { sku: variantDto.sku } },
-              );
-
-              if (existingVariant) {
-                throw new ConflictException(
-                  `SKU for variant ${variantDto.sku} already exists`,
-                );
-              }
-            }
-
-            const productVariant = new ProductVariant();
-            productVariant.variantType = variantType;
-            productVariant.variant_value = variantDto.variant_value;
-            productVariant.sku = variantDto.sku;
-            productVariant.price = variantDto.price;
-            productVariant.stock = variantDto.stock;
-            productVariant.product = savedProduct;
-
-            // Simpan gambar varian (jika ada) - Many-to-Many
-            if (variantDto.imageIds && variantDto.imageIds.length > 0) {
-              const images = await transactionalEntityManager.findBy(Image, {
-                id: In(variantDto.imageIds),
-              });
-
-              if (images.length !== variantDto.imageIds.length) {
-                throw new Error('Some images not found'); // Tangani jika ada ID yang tidak valid
-              }
-
-              // Hubungkan gambar ke varian produk (Many-to-Many)
-              productVariant.images = images;
-              // await transactionalEntityManager.save(Image, productVariant); // Simpan perubahan
-            }
-
-            const savedVariant = await transactionalEntityManager.save(
-              ProductVariant,
-              productVariant,
-            );
-
-            productVariants.push(savedVariant);
-          }
-        }
-
-        // 5. Hubungkan gambar produk utama (jika ada) - Many-to-Many
+        // ======== LINK IMAGE PRODUCT PARENT =========
         if (createProductDto.imageIds && createProductDto.imageIds.length > 0) {
           const images = await transactionalEntityManager.findBy(Image, {
             id: In(createProductDto.imageIds),
@@ -199,42 +177,176 @@ export class ProductService {
 
           await transactionalEntityManager.save(Product, savedProduct); // Simpan produk dengan gambar
         }
-        savedProduct.variants = productVariants;
 
-        console.log(savedProduct);
+        // ======== PRODUCT VARIANT =============
+        const productVariants: ProductVariant[] = [];
+        if (createProductDto.variants && createProductDto.variants.length > 0) {
+          for (const variantDto of createProductDto.variants) {
+            // Ambil semua variantType berdasarkan key dari variantOptions
+            const variantTypeNames = Object.keys(variantDto.variantOptions); // e.g [ 'COLOR', 'SIZE' ]
+            const variantTypes = await transactionalEntityManager.findBy(
+              VariantType,
+              {
+                name: In(variantTypeNames),
+              },
+            );
+
+            if (variantTypes.length !== variantTypeNames.length) {
+              throw new NotFoundException('Some VariantType names not found');
+            }
+
+            // Cek dan Buat VariantName & VariantOption jika belum ada
+            const variantOptions: VariantOption[] = [];
+            // Object entries convert from { "COLOR": "Red", "SIZE": "M" } to [ [ 'COLOR', 'Red' ], [ 'SIZE', 'M' ] ]
+            for (const [variantTypeName, variantValue] of Object.entries(
+              variantDto.variantOptions,
+            )) {
+              const variantType = variantTypes.find(
+                (vt) => vt.name === variantTypeName,
+              );
+
+              if (!variantType) {
+                throw new NotFoundException(
+                  `VariantType ${variantTypeName} not found`,
+                );
+              }
+
+              // find variant name
+              let variantName = await transactionalEntityManager.findOne(
+                VariantName,
+                {
+                  where: {
+                    name: variantValue,
+                    variantType: { id: variantType.id },
+                  },
+                  relations: ['variantType'],
+                },
+              );
+
+              if (!variantName) {
+                // Jika tidak ada, buat baru
+                variantName = new VariantName();
+                variantName.name = variantValue;
+                variantName.variantType = variantType;
+
+                variantName = await transactionalEntityManager.save(
+                  VariantName,
+                  variantName,
+                );
+              }
+
+              // Cek dan buat VariantOption jika belum ada
+              let variantOption = await transactionalEntityManager.findOne(
+                VariantOption,
+                {
+                  where: { variantName: { id: variantName.id } },
+                  relations: ['variantName'],
+                },
+              );
+
+              if (!variantOption) {
+                variantOption = new VariantOption();
+                variantOption.variantName = variantName;
+                variantOption = await transactionalEntityManager.save(
+                  VariantOption,
+                  variantOption,
+                );
+                console.log('variantOption', variantOption);
+              }
+              console.log('debug here?', variantOption);
+              variantOptions.push(variantOption); // [ VariantOption { id: 1 }, VariantOption { id: 2 } ]
+            }
+
+            // Generate SKU jika tidak disediakan
+            if (!variantDto.sku) {
+              variantDto.sku = this.generateSku(
+                `${createProductDto.name}-${Object.values(variantDto.variantOptions).join('-')}`,
+              );
+            } else {
+              const existingVariant = await transactionalEntityManager.findOne(
+                ProductVariant,
+                {
+                  where: { sku: variantDto.sku },
+                },
+              );
+
+              if (existingVariant) {
+                throw new ConflictException(
+                  `SKU for variant ${variantDto.sku} already exists`,
+                );
+              }
+            }
+
+            console.log('debug', variantOptions);
+            // Gabungkan nama variant menjadi format yang diinginkan
+            const variantNamesString = variantOptions
+              .map((vo) => vo.variantName.name)
+              .join(', ');
+
+            // Buat varian produk
+            const productVariant = new ProductVariant();
+            productVariant.product = savedProduct;
+            productVariant.sku = variantDto.sku;
+            productVariant.price = variantDto.price;
+            productVariant.stock = variantDto.stock;
+            productVariant.store = store;
+            productVariant.name = `${savedProduct.name} - (${variantNamesString})`;
+
+            // Simpan gambar varian (jika ada) - Many-to-Many
+            if (variantDto.imageIds && variantDto.imageIds.length > 0) {
+              const images = await transactionalEntityManager.findBy(Image, {
+                id: In(variantDto.imageIds),
+              });
+
+              if (images.length !== variantDto.imageIds.length) {
+                throw new NotFoundException('Some variant images not found'); // Tangani jika ada ID yang tidak valid
+              }
+
+              productVariant.images = images;
+            }
+
+            const savedVariant = await transactionalEntityManager.save(
+              ProductVariant,
+              productVariant,
+            );
+            productVariants.push(savedVariant);
+
+            // Simpan ProductVariantOptions untuk menghubungkan variant dengan productVariant
+            for (const variantOption of variantOptions) {
+              const productVariantOption = new ProductVariantOptions();
+              productVariantOption.productVariant = savedVariant;
+              productVariantOption.variantOption =
+                variantOption as VariantOption;
+
+              await transactionalEntityManager.save(
+                ProductVariantOptions,
+                productVariantOption,
+              );
+            }
+          }
+        }
+
+        // ====== RETURN TO THE USER =========
+        savedProduct.variants = productVariants;
 
         // Sanitize: Avoid circular references before returning
         savedProduct.variants.forEach((variant) => {
           variant.product = undefined; // Remove the circular reference
         });
-
-        // Return sanitized product with proper variants
         return savedProduct;
       },
     );
   }
 
-  // Method untuk mengambil semua produk
-  async findAll(
+  @HandleErrors()
+  async findAllOpt(
     page = 1,
     limit = 10,
     sortBy = 'name',
     sortDirection: 'ASC' | 'DESC' = 'ASC',
     storeId: number,
     filters: Partial<Product> = {},
-  ): Promise<{
-    data: {
-      value: number;
-      label: string;
-      sku: string;
-      description: string;
-      stock: number;
-      price: number;
-    }[];
-    total: number;
-    currentPage: number;
-    totalPages: number;
-  }> {
+  ) {
     // Calculate offset
     const offset = (page - 1) * limit;
 
@@ -267,22 +379,64 @@ export class ProductService {
     // Build query with relations, filters, sorting, and pagination
     const [data, total] = await this.productRepository.findAndCount({
       where: { ...validFilters, store: { id: storeId } },
-      relations: ['categories', 'store', 'variants', 'images'],
+      relations: [
+        'categories',
+        'store',
+        'variants',
+        'images',
+        'variants.images',
+      ],
       order: { [sortBy]: sortDirection },
       take: limit,
       skip: offset,
     });
 
-    const mappedData = data.map((product) => ({
-      value: product.id,
-      label: product.name,
-      sku: product.sku,
-      description: product.description,
-      stock: product.stock,
-      price: product.price,
-      image: product.images[0]?.url,
-      id: product.id,
-    }));
+    const mappedData = data.flatMap((product) => {
+      if (product.variants.length > 0) {
+        // Jika punya varian, parent-nya di-disable
+        return [
+          {
+            value: product.id,
+            label: product.name,
+            sku: product.sku,
+            description: product.description,
+            stock: product.stock,
+            price: product.price,
+            image: product.images[0]?.url,
+            id: product.id,
+            disabled: true, // Parent-nya disabled
+          },
+          ...product.variants.map((variant) => {
+            console.log(variant);
+            return {
+              value: `${product.id}-${variant.id}`, // Kombinasi parentId-variantId
+              label: `${variant.name}`,
+              sku: variant.sku,
+              description: product.description,
+              stock: variant.stock,
+              price: variant.price,
+              image: variant.images?.[0]?.url || product.images[0]?.url, // Bisa pakai gambar dari parent
+              id: variant.id,
+              disabled: variant.stock == 0,
+            };
+          }),
+        ];
+      }
+
+      // Jika tidak punya varian, langsung return produk utama
+      return {
+        value: product.id,
+        label: product.name,
+        sku: product.sku,
+        description: product.description,
+        stock: product.stock,
+        price: product.price,
+        image: product.images[0]?.url,
+        id: product.id,
+        disabled: product.stock == 0, // Ensure the disabled property is included
+      };
+    });
+
     return {
       data: mappedData,
       total,
@@ -293,66 +447,112 @@ export class ProductService {
 
   // Method untuk mengambil satu produk berdasarkan ID
   async findOne(id: number): Promise<Product> {
-    return this.productRepository.findOne({ where: { id } });
+    const product = await this.productRepository.findOne({
+      where: { id },
+      relations: [
+        'store',
+        'categories',
+        'images',
+        'variants',
+        'variants.images',
+      ],
+    });
+
+    if (!product) {
+      throw new NotFoundException(`Product with ID ${id} not found`);
+    }
+
+    return product;
   }
 
   @HandleErrors()
   async update(
     productId: number,
     updateProductDto: UpdateProductDto,
-  ): Promise<Product> {
-    // Mulai transaksi untuk memastikan konsistensi data
+    productImages: Express.Multer.File[],
+    variantImagesMap: Record<number, Express.Multer.File[]>,
+    user: User,
+  ) {
+    // ======= FIND PRODUCT ============
+    const product = await this.productRepository.findOne({
+      where: { id: productId },
+      relations: [
+        'store',
+        'categories',
+        'images',
+        'variants',
+        'variants.images',
+      ],
+    });
+    if (!product) {
+      throw new NotFoundException('Product not found');
+    }
+
+    // ========= IMAGE PARENT UPLOAD ===========
+    let productImagesUploaded: Image[] = [];
+    if (productImages.length > 0) {
+      productImagesUploaded = await this.imageService.uploadMultipleImages(
+        productImages,
+        user,
+        {
+          storeId: product.store.id,
+        },
+      );
+    }
+    // Pastikan imageIds tidak null/undefined sebelum digabungkan
+    const updatedImageIds: (number | undefined)[] = [
+      ...(updateProductDto.imageIds ?? []),
+    ];
+
+    // Gabungkan berdasarkan indeks yang sesuai
+    productImagesUploaded.forEach((image, index) => {
+      updatedImageIds[index] = image.id;
+    });
+
+    updateProductDto.imageIds = updatedImageIds.filter(
+      (id) => id !== undefined,
+    );
+
+    // ========= IMAGE VARIANT UPLOAD ============
+    const variantImageIdsMap: Record<number, number[]> = {};
+    if (updateProductDto.variants && updateProductDto.variants.length > 0) {
+      for (const [variantIndex, images] of Object.entries(variantImagesMap)) {
+        const uploadedVariantImages =
+          await this.imageService.uploadMultipleImages(images, user, {
+            storeId: product.store.id,
+          });
+        variantImageIdsMap[parseInt(variantIndex, 10)] =
+          uploadedVariantImages.map((image) => image.id);
+      }
+      // Simpan hasil savenya ke imageIds
+      updateProductDto.variants = updateProductDto.variants.map(
+        (variant, index) => ({
+          ...variant,
+          imageIds: variantImageIdsMap[index] || [],
+        }),
+      );
+    }
+
     return await this.productRepository.manager.transaction(
       async (transactionalEntityManager) => {
-        // 1. Temukan produk yang akan diperbarui
-        const product = await transactionalEntityManager.findOne(Product, {
-          where: { id: productId },
-          relations: ['categories', 'variants', 'images'], // Termasuk relasi yang relevan
-        });
-
-        if (!product) {
-          throw new NotFoundException('Product not found');
-        }
-
-        // 2. Perbarui kategori (jika diberikan)
-        if (
-          updateProductDto.categories &&
-          updateProductDto.categories.length > 0
-        ) {
-          const categories = await transactionalEntityManager.findBy(Category, {
-            id: In(updateProductDto.categories),
-          });
-
-          if (!categories.length) {
-            throw new HttpException(
-              'Some categories not found',
-              HttpStatus.NOT_FOUND,
-            );
-          }
-          product.categories = categories;
-        }
-
-        // 3. Temukan store berdasarkan ID (jika diperbarui)
-        if (updateProductDto.store) {
-          const store = await transactionalEntityManager.findOne(Store, {
-            where: { id: updateProductDto.store },
-          });
-
-          if (!store) {
-            throw new NotFoundException('Store not found');
-          }
-          product.store = store;
-        }
-
-        // 4. Perbarui atribut produk
+        // ========= UPDATE PRODUCT DETAILS ==========
         product.name = updateProductDto.name ?? product.name;
-        product.sku = updateProductDto.sku ?? product.sku;
+        product.sku = updateProductDto.sku?.trim() || product.sku;
         product.description =
           updateProductDto.description ?? product.description;
         product.stock = updateProductDto.stock ?? product.stock;
         product.price = updateProductDto.price ?? product.price;
+        product.categories = await transactionalEntityManager.findBy(Category, {
+          id: In(
+            updateProductDto.categories ?? product.categories.map((c) => c.id),
+          ),
+        });
 
-        // 5. Perbarui gambar produk utama (jika ada)
+        const updatedProduct = await transactionalEntityManager.save(
+          Product,
+          product,
+        );
+
         if (updateProductDto.imageIds && updateProductDto.imageIds.length > 0) {
           const images = await transactionalEntityManager.findBy(Image, {
             id: In(updateProductDto.imageIds),
@@ -362,94 +562,63 @@ export class ProductService {
             throw new HttpException(
               'Some product images not found',
               HttpStatus.NOT_FOUND,
-            );
+            ); // Tangani jika ada ID gambar yang tidak valid
           }
-          product.images = images;
+
+          updatedProduct.images = images;
+          await transactionalEntityManager.save(Product, updatedProduct); // Simpan produk dengan gambar
         }
 
-        // 6. Simpan produk setelah pembaruan
-        const updatedProduct = await transactionalEntityManager.save(
-          Product,
-          product,
-        );
-
-        // 7. Perbarui varian produk (jika ada)
-        const updatedVariants = [];
-        if (updateProductDto.variants && updateProductDto.variants.length > 0) {
+        // ======== UPDATE PRODUCT VARIANTS =============
+        const productVariants = [];
+        if (updateProductDto.variants) {
           for (const variantDto of updateProductDto.variants) {
-            let productVariant: ProductVariant;
-
-            // Periksa apakah varian ini sudah ada atau perlu dibuat
-            if (variantDto.id) {
-              productVariant = await transactionalEntityManager.findOne(
-                ProductVariant,
-                { where: { id: variantDto.id }, relations: ['images'] },
-              );
-
-              if (!productVariant) {
-                throw new NotFoundException(
-                  `Variant with ID ${variantDto.id} not found`,
-                );
-              }
-            } else {
-              productVariant = new ProductVariant();
-            }
-
-            // Temukan atau tetapkan jenis varian
-            const variantType = await transactionalEntityManager.findOne(
-              VariantType,
-              { where: { id: variantDto.variantTypeId } },
+            const productVariant = await transactionalEntityManager.findOne(
+              ProductVariant,
+              {
+                where: { id: variantDto.id, product: { id: productId } },
+                relations: ['images', 'options'],
+              },
             );
 
-            if (!variantType) {
+            if (!productVariant) {
               throw new NotFoundException(
-                `VariantType with ID ${variantDto.variantTypeId} not found`,
+                `Variant with ID ${variantDto.id} not found`,
               );
             }
 
-            productVariant.variantType = variantType;
-            productVariant.variant_value =
-              variantDto.variant_value ?? productVariant.variant_value;
-            productVariant.sku =
-              variantDto.sku ??
-              this.generateSku(`${product.name}_${variantDto.variant_value}`);
+            productVariant.sku = variantDto.sku ?? productVariant.sku;
             productVariant.price = variantDto.price ?? productVariant.price;
             productVariant.stock = variantDto.stock ?? productVariant.stock;
-            productVariant.product = updatedProduct;
+            productVariant.name = `${product.name} - (${Object.values(variantDto.variantOptions).join(', ')})`;
 
-            // Perbarui gambar varian (jika ada)
             if (variantDto.imageIds && variantDto.imageIds.length > 0) {
               const images = await transactionalEntityManager.findBy(Image, {
                 id: In(variantDto.imageIds),
               });
 
+              console.log(
+                'images',
+                images,
+                variantDto.imageIds,
+                variantDto.imageIds.length,
+                typeof variantDto.imageIds[0],
+              );
               if (images.length !== variantDto.imageIds.length) {
-                throw new HttpException(
-                  'Some variant images not found',
-                  HttpStatus.NOT_FOUND,
-                );
+                throw new Error('Some variant images not found'); // Tangani jika ada ID yang tidak valid
               }
 
               productVariant.images = images;
             }
 
-            // Simpan varian
             const savedVariant = await transactionalEntityManager.save(
               ProductVariant,
               productVariant,
             );
-
-            updatedVariants.push(savedVariant);
+            productVariants.push(savedVariant);
           }
         }
 
-        // Sanitize: Hindari referensi melingkar
-        updatedProduct.variants = updatedVariants;
-        updatedProduct.variants.forEach((variant) => {
-          variant.product = undefined;
-        });
-
-        // Kembalikan produk yang diperbarui
         return updatedProduct;
       },
     );
@@ -457,6 +626,15 @@ export class ProductService {
 
   // Method untuk menghapus produk berdasarkan ID
   async remove(id: number): Promise<void> {
+    const product = await this.productRepository.findOne({
+      where: { id },
+      relations: ['images'], // Load images agar bisa di-unlink
+    });
+
+    if (!product) throw new Error('Product not found');
+
+    product.images = []; // Kosongkan relasi
+
     await this.productRepository.delete(id);
   }
 }

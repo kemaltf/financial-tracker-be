@@ -6,6 +6,7 @@ import {
   Param,
   Patch,
   Delete,
+  Query,
 } from '@nestjs/common';
 import { VariantTypeService } from './variant-type.service';
 import { CreateVariantTypeDto } from './dto/create-variant-type.dto';
@@ -23,8 +24,9 @@ export class VariantTypeController {
   }
 
   @Get()
-  async findAll(@GetUser() user: User) {
-    return this.variantTypeService.findAll(user);
+  async findAll(@GetUser() user: User, @Query('storeId') storeId: number) {
+    console.log('========>', storeId);
+    return this.variantTypeService.findAll(user, storeId);
   }
 
   @Get(':id')

@@ -4,10 +4,10 @@ import {
   IsNumber,
   IsArray,
   IsOptional,
-  IsDecimal,
   IsNotEmpty,
   ValidateNested,
   IsInt,
+  ValidateIf,
 } from 'class-validator';
 import { CreateProductVariantDto } from './create-product-variant.dto';
 
@@ -18,7 +18,7 @@ export class CreateProductDto {
 
   @IsString()
   @IsOptional()
-  sku: string;
+  sku?: string;
 
   @IsString()
   @IsNotEmpty()
@@ -28,27 +28,32 @@ export class CreateProductDto {
   @IsNotEmpty()
   stock: number;
 
-  @IsDecimal()
+  @IsNumber()
   @IsNotEmpty()
   price: number;
 
   @IsArray()
+  @IsInt({ each: true })
   @IsNotEmpty()
   categories: number[]; // Array of category IDs
 
   @IsNumber()
   @IsNotEmpty()
-  store: number; // Store ID
+  storeId: number; // Store ID
 
-  // Properti lainnya
   @IsOptional()
+  @ValidateIf(
+    (_, value) =>
+      value === null ||
+      (Array.isArray(value) && value.every((v) => typeof v === 'number')),
+  )
   @IsArray()
   @IsInt({ each: true })
-  imageIds?: number[]; // Optional, array of image IDs
+  imageIds?: number[] | null;
 
   @IsOptional()
   @IsArray()
   @ValidateNested({ each: true })
   @Type(() => CreateProductVariantDto)
-  variants?: CreateProductVariantDto[];
+  variants?: CreateProductVariantDto[]; // Array of variants, each with its own combination of variant types and values
 }

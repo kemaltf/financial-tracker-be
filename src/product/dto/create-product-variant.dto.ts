@@ -1,27 +1,27 @@
+import { Type } from 'class-transformer';
 import {
   IsString,
   IsNumber,
-  IsDecimal,
   IsNotEmpty,
   IsOptional,
   IsInt,
   IsArray,
+  IsObject,
+  ValidateNested,
 } from 'class-validator';
 
 export class CreateProductVariantDto {
-  @IsInt()
+  @IsObject()
+  @ValidateNested()
+  @Type(() => Object)
   @IsNotEmpty()
-  variantTypeId: number; // ID of the variant type
-
-  @IsString()
-  @IsNotEmpty()
-  variant_value: string;
+  variantOptions: Record<string, string>;
 
   @IsString()
   @IsOptional()
-  sku: string;
+  sku?: string;
 
-  @IsDecimal()
+  @IsNumber()
   @IsNotEmpty()
   price: number;
 
@@ -29,9 +29,8 @@ export class CreateProductVariantDto {
   @IsNotEmpty()
   stock: number;
 
-  // Properti lainnya
   @IsOptional()
   @IsArray()
   @IsInt({ each: true })
-  imageIds?: number[]; // Optional, array of image IDs
+  imageIds?: number[];
 }

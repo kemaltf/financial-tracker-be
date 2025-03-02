@@ -6,9 +6,13 @@ import {
   UpdateDateColumn,
   ManyToMany,
   JoinTable,
+  ManyToOne,
+  JoinColumn,
 } from 'typeorm';
 import { ProductVariant } from 'src/product/entity/product-variant.entity';
 import { Product } from 'src/product/entity/product.entity';
+import { User } from '@app/user/user.entity';
+import { Store } from '@app/store/store.entity';
 
 @Entity('images')
 export class Image {
@@ -51,4 +55,20 @@ export class Image {
 
   @UpdateDateColumn({ type: 'datetime', name: 'updated_at' })
   updatedAt: Date;
+
+  @ManyToOne(
+    () => User,
+    (user) => user.images,
+    { onDelete: 'CASCADE' }, // Menambahkan cascade delete
+  )
+  @JoinColumn({ name: 'user_id' }) // Menentukan nama kolom di DB
+  user: User;
+
+  @ManyToOne(
+    () => Store,
+    (store) => store.images, // Relasi ke store
+    { nullable: true, onDelete: 'SET NULL' }, // Opsional, jika store dihapus maka set null
+  )
+  @JoinColumn({ name: 'store_id' }) // Nama kolom di DB
+  store?: Store;
 }

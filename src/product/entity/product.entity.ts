@@ -15,8 +15,12 @@ import { Image } from 'src/image/image.entity';
 import { ProductVariant } from './product-variant.entity';
 import { ColumnNumericTransformer } from '@app/common/transformer/column-numeric.transformer';
 
+// e.g *jika huruf mtO onya besar berarti disimpan idnya di tabel ini
+// name    | sku     | desc                 | stock | price  | categories (mtm)| store (mtO) | variants (otM)  | images (mtm)|
+// 'Jacket'| 'JKT001'| 'Jacket musim dingin'|  50   | 250.0, | [1,2]           | 1           | [1,2,3,4]       | [1,2,3]     |
+
 @Entity('products')
-@Unique(['sku']) // Menambahkan constraint unik pada sku
+@Unique(['sku', 'store']) // Menambahkan constraint unik pada sku
 export class Product {
   @PrimaryGeneratedColumn()
   id: number;
@@ -41,21 +45,29 @@ export class Product {
   })
   price: number;
 
-  @CreateDateColumn({ type: 'datetime', name: 'created_at' })
-  createdAt: Date;
-
-  @UpdateDateColumn({ type: 'datetime', name: 'updated_at' })
-  updatedAt: Date;
-
-  @ManyToMany(() => Category, (category) => category.products)
+  @ManyToMany(() => Category, (category) => category.products, {
+    cascade: false, // Hindari cascade agar Image tidak ikut terhapus
+    onDelete: 'CASCADE', // Hanya hapus dari tabel pivot
+  })
   categories: Category[];
 
   @ManyToOne(() => Store, (store) => store.products)
   store: Store;
 
-  @OneToMany(() => ProductVariant, (variant) => variant.product)
+  @OneToMany(() => ProductVariant, (variant) => variant.product, {
+    cascade: ['remove'],
+  })
   variants: ProductVariant[];
 
-  @ManyToMany(() => Image, (image) => image.products)
+  @ManyToMany(() => Image, (image) => image.products, {
+    cascade: false, // Hindari cascade agar Image tidak ikut terhapus
+    onDelete: 'CASCADE', // Hanya hapus dari tabel pivot
+  })
   images: Image[];
+
+  @CreateDateColumn({ type: 'datetime', name: 'created_at' })
+  createdAt: Date;
+
+  @UpdateDateColumn({ type: 'datetime', name: 'updated_at' })
+  updatedAt: Date;
 }

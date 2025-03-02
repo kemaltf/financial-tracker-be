@@ -108,7 +108,7 @@ export class SubAccountService {
   }
 
   // Mendapatkan akun berdasarkan ID
-  async getAccountById(id: number, user: User): Promise<SubAccount> {
+  async getSubAccountById(id: number, user: User): Promise<SubAccount> {
     const account = await this.subAccountRepository.findOne({
       where: { id, user: user },
       relations: ['account'],
@@ -168,17 +168,30 @@ export class SubAccountService {
     user: User,
     manager: EntityManager,
   ): Promise<SubAccount[]> {
+    // Cek apakah account types sudah tersedia di database
     const accountTypes = await manager.find(Account, {
       where: {
         type: In(createAccountDTOs.map((dto) => dto.type)),
       },
     });
 
+    // Buat Map untuk lookup cepat
     const accountTypeMap = new Map(
       accountTypes.map((account) => [account.type, account]),
     );
 
-    console.log('====', accountTypeMap);
+    // Cek apakah ada account type yang tidak ditemukan
+    const missingTypes = createAccountDTOs
+      .map((dto) => dto.type)
+      .filter((type) => !accountTypeMap.has(type));
+
+    if (missingTypes.length > 0) {
+      throw new BadRequestException(
+        `The following account types are missing in the database: ${missingTypes.join(', ')}. ` +
+          `Make sure you have seeded the account types correctly.`,
+      );
+    }
+
     // Ambil semua last account codes untuk setiap type yang akan digunakan
     const lastAccounts = await manager.find(SubAccount, {
       where: {
@@ -200,9 +213,8 @@ export class SubAccountService {
 
     const newAccounts = createAccountDTOs.map((dto) => {
       const relatedAccount = accountTypeMap.get(dto.type);
-      if (!relatedAccount) {
-        throw new Error(`Account type ${dto.type} not found`);
-      }
+
+      // Tidak perlu pengecekan di sini lagi karena sudah dilakukan sebelumnya
 
       // Hitung kode baru dengan memastikan tidak ada duplikasi
       const prefix = this.getAccountPrefix(dto.type);
@@ -231,14 +243,14 @@ export class SubAccountService {
     updateAccountDTO: UpdateAccountDTO,
     user: User,
   ): Promise<SubAccount> {
-    const account = await this.getAccountById(id, user);
+    const account = await this.getSubAccountById(id, user);
     Object.assign(account, updateAccountDTO);
     return await this.subAccountRepository.save(account);
   }
 
   // Menghapus akun berdasarkan ID
   async deleteAccount(id: number, user: User): Promise<void> {
-    const account = await this.getAccountById(id, user);
+    const account = await this.getSubAccountById(id, user);
     await this.subAccountRepository.remove(account);
   }
 }
