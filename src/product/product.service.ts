@@ -447,7 +447,22 @@ export class ProductService {
 
   // Method untuk mengambil satu produk berdasarkan ID
   async findOne(id: number): Promise<Product> {
-    return this.productRepository.findOne({ where: { id } });
+    const product = await this.productRepository.findOne({
+      where: { id },
+      relations: [
+        'store',
+        'categories',
+        'images',
+        'variants',
+        'variants.images',
+      ],
+    });
+
+    if (!product) {
+      throw new NotFoundException(`Product with ID ${id} not found`);
+    }
+
+    return product;
   }
 
   @HandleErrors()

@@ -105,18 +105,18 @@ export class ImageService {
 
     return await this.imageRepository.find({
       where: whereCondition,
-      relations: ['user', 'store'],
+      relations: ['user', 'store', 'products', 'productVariants'], // ✅ Tambahkan relasi
       select: {
         createdAt: true,
         id: true,
         key: true,
         mimeType: true,
-        products: true,
-        productVariants: true,
         size: true,
         updatedAt: true,
         url: true,
         user: {},
+        products: { id: true, name: true }, // ✅ Ambil info produk
+        productVariants: { id: true, name: true }, // ✅ Ambil info varian produk
       },
     });
   }
