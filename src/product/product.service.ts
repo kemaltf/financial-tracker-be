@@ -391,51 +391,27 @@ export class ProductService {
       skip: offset,
     });
 
-    const mappedData = data.flatMap((product) => {
-      if (product.variants.length > 0) {
-        // Jika punya varian, parent-nya di-disable
-        return [
-          {
-            value: product.id,
-            label: product.name,
-            sku: product.sku,
-            description: product.description,
-            stock: product.stock,
-            price: product.price,
-            image: product.images[0]?.url,
-            id: product.id,
-            disabled: true, // Parent-nya disabled
-          },
-          ...product.variants.map((variant) => {
-            console.log(variant);
-            return {
-              value: `${product.id}-${variant.id}`, // Kombinasi parentId-variantId
-              label: `${variant.name}`,
-              sku: variant.sku,
-              description: product.description,
-              stock: variant.stock,
-              price: variant.price,
-              image: variant.images?.[0]?.url || product.images[0]?.url, // Bisa pakai gambar dari parent
-              id: variant.id,
-              disabled: variant.stock == 0,
-            };
-          }),
-        ];
-      }
+    const mappedData = data.map((product) => ({
+      value: product.id,
+      label: product.name,
+      sku: product.sku,
+      description: product.description,
+      stock: product.stock,
+      price: product.price,
+      image: product.images[0]?.url,
+      id: product.id,
 
-      // Jika tidak punya varian, langsung return produk utama
-      return {
-        value: product.id,
-        label: product.name,
-        sku: product.sku,
+      variant: product.variants.map((variant) => ({
+        value: `${product.id}-${variant.id}`, // Kombinasi parentId-variantId
+        label: `${variant.name}`,
+        sku: variant.sku,
         description: product.description,
-        stock: product.stock,
-        price: product.price,
-        image: product.images[0]?.url,
-        id: product.id,
-        disabled: product.stock == 0, // Ensure the disabled property is included
-      };
-    });
+        stock: variant.stock,
+        price: variant.price,
+        image: variant.images?.[0]?.url, // Bisa pakai gambar dari parent
+        id: variant.id,
+      })),
+    }));
 
     return {
       data: mappedData,
@@ -444,7 +420,6 @@ export class ProductService {
       totalPages: Math.ceil(total / limit),
     };
   }
-
   // Method untuk mengambil satu produk berdasarkan ID
   async findOne(id: number): Promise<Product> {
     const product = await this.productRepository.findOne({

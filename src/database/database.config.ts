@@ -17,4 +17,7 @@ export const getDatabaseConfig = (
     type: 'mysql', // Pastikan ini adalah literal, bukan string biasa
     username: configService.get<string>('DB_USERNAME'),
     timezone: 'Z',
+    extra: {
+      allowPublicKeyRetrieval: true,
+    },
   }) as const;
