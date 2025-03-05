@@ -30,7 +30,10 @@ export class Category {
   @UpdateDateColumn({ type: 'datetime', name: 'updated_at' })
   updatedAt: Date;
 
-  @ManyToMany(() => Product, (product) => product.categories)
+  @ManyToMany(() => Product, (product) => product.categories, {
+    cascade: false,
+    onDelete: 'RESTRICT', // Mencegah penghapusan jika masih ada relasi
+  })
   @JoinTable({
     name: 'product_categories',
     joinColumn: { name: 'category_id', referencedColumnName: 'id' },
