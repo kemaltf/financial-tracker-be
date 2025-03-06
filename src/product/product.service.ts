@@ -23,6 +23,7 @@ import { VariantName } from '@app/variant/variant-name.entity';
 import { VariantOption } from './entity/variant-option.entity';
 import { ProductVariantOptions } from './entity/product-variant-option.entity';
 import { UpdateProductDto } from './dto/update-product.dto';
+import { ProductImage } from './entity/product-images.entity';
 
 @Injectable()
 export class ProductService {
@@ -161,9 +162,11 @@ export class ProductService {
 
         // ======== LINK IMAGE PRODUCT PARENT =========
         if (createProductDto.imageIds && createProductDto.imageIds.length > 0) {
-          const images = await transactionalEntityManager.findBy(Image, {
-            id: In(createProductDto.imageIds),
-          });
+          const images = await transactionalEntityManager
+            .createQueryBuilder(Image, 'image')
+            .where('image.id IN (:...ids)', { ids: createProductDto.imageIds })
+            .orderBy(`FIELD(image.id, ${createProductDto.imageIds.join(',')})`)
+            .getMany();
 
           if (images.length !== createProductDto.imageIds.length) {
             throw new HttpException(
@@ -172,10 +175,22 @@ export class ProductService {
             ); // Tangani jika ada ID gambar yang tidak valid
           }
 
-          // Hubungkan gambar ke produk (Many-to-Many)
-          savedProduct.images = images;
+          // Hapus relasi lama jika ada (untuk update)
+          await transactionalEntityManager.delete(ProductImage, {
+            product: savedProduct,
+          });
 
-          await transactionalEntityManager.save(Product, savedProduct); // Simpan produk dengan gambar
+          // Simpan gambar dengan urutan
+          for (let i = 0; i < createProductDto.imageIds.length; i++) {
+            const productImage = new ProductImage();
+            productImage.product = savedProduct;
+            productImage.image = images.find(
+              (img) => img.id === createProductDto.imageIds[i],
+            );
+            productImage.order = i; // Simpan urutan sesuai input
+
+            await transactionalEntityManager.save(ProductImage, productImage);
+          }
         }
 
         // ======== PRODUCT VARIANT =============
@@ -383,7 +398,7 @@ export class ProductService {
         'categories',
         'store',
         'variants',
-        'images',
+        'productImages.image', // Gambar produk dari pivot
         'variants.images',
       ],
       order: { [sortBy]: sortDirection },
@@ -391,51 +406,29 @@ export class ProductService {
       skip: offset,
     });
 
-    const mappedData = data.flatMap((product) => {
-      if (product.variants.length > 0) {
-        // Jika punya varian, parent-nya di-disable
-        return [
-          {
-            value: product.id,
-            label: product.name,
-            sku: product.sku,
-            description: product.description,
-            stock: product.stock,
-            price: product.price,
-            image: product.images[0]?.url,
-            id: product.id,
-            disabled: true, // Parent-nya disabled
-          },
-          ...product.variants.map((variant) => {
-            console.log(variant);
-            return {
-              value: `${product.id}-${variant.id}`, // Kombinasi parentId-variantId
-              label: `${variant.name}`,
-              sku: variant.sku,
-              description: product.description,
-              stock: variant.stock,
-              price: variant.price,
-              image: variant.images?.[0]?.url || product.images[0]?.url, // Bisa pakai gambar dari parent
-              id: variant.id,
-              disabled: variant.stock == 0,
-            };
-          }),
-        ];
-      }
+    const mappedData = data.map((product) => ({
+      value: product.id,
+      label: product.name,
+      sku: product.sku,
+      description: product.description,
+      stock: product.stock,
+      price: product.price,
+      image: product.productImages
+        .sort((a, b) => a.order - b.order) // Urutkan gambar dari pivot
+        ?.at(0)?.image.url, // Ambil gambar pertama
+      id: product.id,
 
-      // Jika tidak punya varian, langsung return produk utama
-      return {
-        value: product.id,
-        label: product.name,
-        sku: product.sku,
+      variant: product.variants.map((variant) => ({
+        value: `${product.id}-${variant.id}`, // Kombinasi parentId-variantId
+        label: `${variant.name}`,
+        sku: variant.sku,
         description: product.description,
-        stock: product.stock,
-        price: product.price,
-        image: product.images[0]?.url,
-        id: product.id,
-        disabled: product.stock == 0, // Ensure the disabled property is included
-      };
-    });
+        stock: variant.stock,
+        price: variant.price,
+        image: variant.images?.[0]?.url, // Bisa pakai gambar dari parent
+        id: variant.id,
+      })),
+    }));
 
     return {
       data: mappedData,
@@ -443,26 +436,6 @@ export class ProductService {
       currentPage: page,
       totalPages: Math.ceil(total / limit),
     };
-  }
-
-  // Method untuk mengambil satu produk berdasarkan ID
-  async findOne(id: number): Promise<Product> {
-    const product = await this.productRepository.findOne({
-      where: { id },
-      relations: [
-        'store',
-        'categories',
-        'images',
-        'variants',
-        'variants.images',
-      ],
-    });
-
-    if (!product) {
-      throw new NotFoundException(`Product with ID ${id} not found`);
-    }
-
-    return product;
   }
 
   @HandleErrors()
@@ -479,7 +452,7 @@ export class ProductService {
       relations: [
         'store',
         'categories',
-        'images',
+        'productImages.image', // Ambil relasi gambar melalui pivot productImages
         'variants',
         'variants.images',
       ],
@@ -487,6 +460,8 @@ export class ProductService {
     if (!product) {
       throw new NotFoundException('Product not found');
     }
+
+    console.log('DEBUG=>', updateProductDto);
 
     // ========= IMAGE PARENT UPLOAD ===========
     let productImagesUploaded: Image[] = [];
@@ -515,23 +490,35 @@ export class ProductService {
 
     // ========= IMAGE VARIANT UPLOAD ============
     const variantImageIdsMap: Record<number, number[]> = {};
+
     if (updateProductDto.variants && updateProductDto.variants.length > 0) {
       for (const [variantIndex, images] of Object.entries(variantImagesMap)) {
         const uploadedVariantImages =
           await this.imageService.uploadMultipleImages(images, user, {
             storeId: product.store.id,
           });
+
         variantImageIdsMap[parseInt(variantIndex, 10)] =
           uploadedVariantImages.map((image) => image.id);
       }
-      // Simpan hasil savenya ke imageIds
+
+      // ✅ Pastikan imageIds tetap menyimpan ID yang sudah ada
       updateProductDto.variants = updateProductDto.variants.map(
-        (variant, index) => ({
-          ...variant,
-          imageIds: variantImageIdsMap[index] || [],
-        }),
+        (variant, index) => {
+          const existingImageIds = variant.imageIds ?? []; // Simpan ID yang sudah ada
+          const newImageIds = variantImageIdsMap[index] || []; // Tambahkan yang baru
+
+          return {
+            ...variant,
+            imageIds: [...existingImageIds, ...newImageIds].filter(
+              (id) => id !== null,
+            ), // Gabungkan dan pastikan tidak ada null
+          };
+        },
       );
     }
+
+    console.log('debug 10,', updateProductDto);
 
     return await this.productRepository.manager.transaction(
       async (transactionalEntityManager) => {
@@ -553,10 +540,15 @@ export class ProductService {
           product,
         );
 
+        console.log('DEBUG 2', updateProductDto);
         if (updateProductDto.imageIds && updateProductDto.imageIds.length > 0) {
-          const images = await transactionalEntityManager.findBy(Image, {
-            id: In(updateProductDto.imageIds),
-          });
+          const images = await transactionalEntityManager
+            .createQueryBuilder(Image, 'image')
+            .where('image.id IN (:...ids)', { ids: updateProductDto.imageIds })
+            .orderBy(`FIELD(image.id, ${updateProductDto.imageIds.join(',')})`)
+            .getMany();
+
+          console.log('debug 9', images);
 
           if (images.length !== updateProductDto.imageIds.length) {
             throw new HttpException(
@@ -565,47 +557,152 @@ export class ProductService {
             ); // Tangani jika ada ID gambar yang tidak valid
           }
 
-          updatedProduct.images = images;
-          await transactionalEntityManager.save(Product, updatedProduct); // Simpan produk dengan gambar
+          // Hapus relasi lama agar tidak duplikasi
+          await transactionalEntityManager.delete(ProductImage, {
+            product: updatedProduct,
+          });
+
+          // Simpan gambar dengan urutan yang benar
+          for (let i = 0; i < updateProductDto.imageIds.length; i++) {
+            const productImage = new ProductImage();
+            productImage.product = updatedProduct;
+            productImage.image = images.find(
+              (img) => img.id === updateProductDto.imageIds[i],
+            );
+            productImage.order = i; // Simpan urutan sesuai input
+
+            await transactionalEntityManager.save(ProductImage, productImage);
+          }
         }
 
         // ======== UPDATE PRODUCT VARIANTS =============
-        const productVariants = [];
-        if (updateProductDto.variants) {
+        // 🔹 **Step 1: Hapus semua variants lama**
+        await transactionalEntityManager.delete(ProductVariant, {
+          product: { id: productId },
+        });
+
+        // ======== PRODUCT VARIANT =============
+        const productVariants: ProductVariant[] = [];
+        if (updateProductDto.variants && updateProductDto.variants.length > 0) {
           for (const variantDto of updateProductDto.variants) {
-            const productVariant = await transactionalEntityManager.findOne(
-              ProductVariant,
+            // Ambil semua variantType berdasarkan key dari variantOptions
+            const variantTypeNames = Object.keys(variantDto.variantOptions); // e.g [ 'COLOR', 'SIZE' ]
+            const variantTypes = await transactionalEntityManager.findBy(
+              VariantType,
               {
-                where: { id: variantDto.id, product: { id: productId } },
-                relations: ['images', 'options'],
+                name: In(variantTypeNames),
               },
             );
 
-            if (!productVariant) {
-              throw new NotFoundException(
-                `Variant with ID ${variantDto.id} not found`,
-              );
+            if (variantTypes.length !== variantTypeNames.length) {
+              throw new NotFoundException('Some VariantType names not found');
             }
 
-            productVariant.sku = variantDto.sku ?? productVariant.sku;
-            productVariant.price = variantDto.price ?? productVariant.price;
-            productVariant.stock = variantDto.stock ?? productVariant.stock;
-            productVariant.name = `${product.name} - (${Object.values(variantDto.variantOptions).join(', ')})`;
+            // Cek dan Buat VariantName & VariantOption jika belum ada
+            const variantOptions: VariantOption[] = [];
+            // Object entries convert from { "COLOR": "Red", "SIZE": "M" } to [ [ 'COLOR', 'Red' ], [ 'SIZE', 'M' ] ]
+            for (const [variantTypeName, variantValue] of Object.entries(
+              variantDto.variantOptions,
+            )) {
+              const variantType = variantTypes.find(
+                (vt) => vt.name === variantTypeName,
+              );
 
+              if (!variantType) {
+                throw new NotFoundException(
+                  `VariantType ${variantTypeName} not found`,
+                );
+              }
+
+              // find variant name
+              let variantName = await transactionalEntityManager.findOne(
+                VariantName,
+                {
+                  where: {
+                    name: variantValue,
+                    variantType: { id: variantType.id },
+                  },
+                  relations: ['variantType'],
+                },
+              );
+
+              if (!variantName) {
+                // Jika tidak ada, buat baru
+                variantName = new VariantName();
+                variantName.name = variantValue;
+                variantName.variantType = variantType;
+
+                variantName = await transactionalEntityManager.save(
+                  VariantName,
+                  variantName,
+                );
+              }
+
+              // Cek dan buat VariantOption jika belum ada
+              let variantOption = await transactionalEntityManager.findOne(
+                VariantOption,
+                {
+                  where: { variantName: { id: variantName.id } },
+                  relations: ['variantName'],
+                },
+              );
+
+              if (!variantOption) {
+                variantOption = new VariantOption();
+                variantOption.variantName = variantName;
+                variantOption = await transactionalEntityManager.save(
+                  VariantOption,
+                  variantOption,
+                );
+                console.log('variantOption', variantOption);
+              }
+              console.log('debug here?', variantOption);
+              variantOptions.push(variantOption); // [ VariantOption { id: 1 }, VariantOption { id: 2 } ]
+            }
+
+            // Generate SKU jika tidak disediakan
+            if (!variantDto.sku) {
+              variantDto.sku = this.generateSku(
+                `${updateProductDto.name}-${Object.values(variantDto.variantOptions).join('-')}`,
+              );
+            } else {
+              const existingVariant = await transactionalEntityManager.findOne(
+                ProductVariant,
+                {
+                  where: { sku: variantDto.sku },
+                },
+              );
+
+              if (existingVariant) {
+                throw new ConflictException(
+                  `SKU for variant ${variantDto.sku} already exists`,
+                );
+              }
+            }
+
+            console.log('debug', variantOptions);
+            // Gabungkan nama variant menjadi format yang diinginkan
+            const variantNamesString = variantOptions
+              .map((vo) => vo.variantName.name)
+              .join(', ');
+
+            // Buat varian produk
+            const productVariant = new ProductVariant();
+            productVariant.product = updatedProduct;
+            productVariant.sku = variantDto.sku;
+            productVariant.price = variantDto.price;
+            productVariant.stock = variantDto.stock;
+            productVariant.store = updatedProduct.store;
+            productVariant.name = `${updatedProduct.name} - (${variantNamesString})`;
+
+            // Simpan gambar varian (jika ada) - Many-to-Many
             if (variantDto.imageIds && variantDto.imageIds.length > 0) {
               const images = await transactionalEntityManager.findBy(Image, {
                 id: In(variantDto.imageIds),
               });
 
-              console.log(
-                'images',
-                images,
-                variantDto.imageIds,
-                variantDto.imageIds.length,
-                typeof variantDto.imageIds[0],
-              );
               if (images.length !== variantDto.imageIds.length) {
-                throw new Error('Some variant images not found'); // Tangani jika ada ID yang tidak valid
+                throw new NotFoundException('Some variant images not found'); // Tangani jika ada ID yang tidak valid
               }
 
               productVariant.images = images;
@@ -616,25 +713,144 @@ export class ProductService {
               productVariant,
             );
             productVariants.push(savedVariant);
+
+            // Simpan ProductVariantOptions untuk menghubungkan variant dengan productVariant
+            for (const variantOption of variantOptions) {
+              const productVariantOption = new ProductVariantOptions();
+              productVariantOption.productVariant = savedVariant;
+              productVariantOption.variantOption =
+                variantOption as VariantOption;
+
+              await transactionalEntityManager.save(
+                ProductVariantOptions,
+                productVariantOption,
+              );
+            }
           }
         }
 
+        // ====== RETURN TO THE USER =========
+        updatedProduct.variants = productVariants;
+
+        // Sanitize: Avoid circular references before returning
+        updatedProduct.variants.forEach((variant) => {
+          variant.product = undefined; // Remove the circular reference
+        });
         return updatedProduct;
       },
     );
   }
 
-  // Method untuk menghapus produk berdasarkan ID
+  @HandleErrors()
   async remove(id: number): Promise<void> {
+    await this.productRepository.manager.transaction(async (manager) => {
+      const product = await manager.findOne(Product, {
+        where: { id },
+        relations: ['productImages', 'productImages.image'], // Load images agar bisa dihapus
+      });
+
+      if (!product) throw new NotFoundException('Product not found');
+
+      // Hapus hanya gambar terkait
+      const imageIds = product.productImages.map((pi) => pi.image.id);
+      if (imageIds.length > 0) {
+        await manager.delete(Image, imageIds);
+      }
+
+      // Hapus produk
+      await manager.delete(Product, id);
+    });
+  }
+
+  @HandleErrors()
+  async getProductDetail(productId: number) {
     const product = await this.productRepository.findOne({
-      where: { id },
-      relations: ['images'], // Load images agar bisa di-unlink
+      where: { id: productId },
+      relations: [
+        'store',
+        'categories',
+        'variants',
+        'variants.options',
+        'variants.images',
+        'variants.options.variantOption',
+        'variants.options.variantOption.variantName',
+        'variants.options.variantOption.variantName.variantType',
+        'productImages.image', // Ambil relasi gambar melalui pivot productImages
+      ],
     });
 
-    if (!product) throw new Error('Product not found');
+    console.log('debux', product);
 
-    product.images = []; // Kosongkan relasi
+    if (!product) {
+      throw new NotFoundException('Product not found');
+    }
 
-    await this.productRepository.delete(id);
+    return {
+      id: product.id,
+      name: product.name,
+      sku: product.sku,
+      description: product.description,
+      stock: product.stock,
+      price: product.price,
+      store: {
+        id: product.store.id,
+        name: product.store.name,
+      },
+      categories: product.categories.map((category) => ({
+        id: category.id,
+        name: category.name,
+      })),
+      images: product.productImages
+        .sort((a, b) => a.order - b.order) // Urutkan berdasarkan field order
+        .map((productImage) => ({
+          id: productImage.image.id,
+          url: productImage.image.url,
+          name: productImage.image.key,
+          type: productImage.image.mimeType,
+          size: productImage.image.size,
+        })),
+      variants: product.variants.map((variant) => ({
+        id: variant.id,
+        sku: variant.sku,
+        price: variant.price,
+        stock: variant.stock,
+        name: variant.name,
+        image: variant.images.map((image) => ({
+          url: image.url,
+          name: image.key,
+          type: image.mimeType,
+          size: image.size,
+          id: image.id,
+        })),
+
+        variantOptions: variant.options.map((option) => ({
+          id: option.id,
+          name: option.variantOption.variantName.name,
+          type: option.variantOption.variantName.variantType.name,
+          nameId: option.variantOption.variantName.id,
+          typeId: option.variantOption.variantName.variantType.id,
+        })),
+      })),
+      variantTypeSelections: [
+        ...product.variants
+          .flatMap((variant) =>
+            variant.options.map((option) => ({
+              id: option.variantOption.variantName.variantType.id,
+              variantName: option.variantOption.variantName.name,
+            })),
+          )
+          .reduce((map, { id, variantName }) => {
+            if (!map.has(id)) {
+              map.set(id, { id, variantName: [] });
+            }
+            const entry = map.get(id)!;
+            if (!entry.variantName.includes(variantName)) {
+              entry.variantName.push(variantName);
+            }
+            return map;
+          }, new Map())
+          .values(),
+      ],
+    };
   }
 }

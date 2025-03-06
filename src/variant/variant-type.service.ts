@@ -46,31 +46,19 @@ export class VariantTypeService {
     return this.findOne(result.id, user);
   }
 
-  // Get all variant types
-  async findAll(user: User, storeId: number): Promise<VariantType[]> {
-    return this.variantTypeRepository.find({
-      where: {
-        store: {
-          id: storeId,
-          user: {
-            id: user.id, // Filter berdasarkan userId
-          },
-        },
-      },
-      relations: ['store', 'store.user'], // Pastikan user tetap bisa diakses
-      select: {
-        id: true,
-        name: true,
-        store: {
-          id: true,
-          name: true,
-          user: {
-            id: true, // Hanya mengambil id user
-          },
-        },
-      },
-      order: { id: 'ASC' },
-    });
+  async findAll(user: User, storeId?: number): Promise<VariantType[]> {
+    const query = this.variantTypeRepository
+      .createQueryBuilder('variantType')
+      .innerJoinAndSelect('variantType.store', 'store')
+      .innerJoin('store.user', 'user') // Hanya join tanpa mengambil semua field user
+      .addSelect(['user.id', 'user.username']) // Ambil hanya id dan username
+      .where('user.id = :userId', { userId: user.id });
+
+    if (storeId) {
+      query.andWhere('store.id = :storeId', { storeId });
+    }
+
+    return query.orderBy('variantType.id', 'ASC').getMany();
   }
 
   // Get a single variant type by ID

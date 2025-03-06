@@ -34,6 +34,12 @@ export function HandleErrors() {
                 'Operation failed due to foreign key constraint',
               );
             }
+            if (errno === 1451) {
+              // Foreign key constraint error
+              throw new ForbiddenException(
+                'Unable to delete or update the record because it is still referenced by other records.',
+              );
+            }
           }
         }
 

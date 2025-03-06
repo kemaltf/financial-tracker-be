@@ -52,8 +52,8 @@ export class ProductController {
 
   // Mendapatkan produk berdasarkan ID
   @Get(':id')
-  async findOne(@Param('id') id: number): Promise<Product> {
-    return this.productService.findOne(id);
+  async findOne(@Param('id') id: number) {
+    return this.productService.getProductDetail(id);
   }
 
   @Post()
@@ -148,7 +148,7 @@ export class ProductController {
     @UploadedFiles() files: Express.Multer.File[],
     @GetUser() user: User,
   ): Promise<Product> {
-    console.log(data);
+    console.log('debug 0', data);
     if (!data) {
       throw new BadRequestException('Data produk harus dikirim.');
     }
@@ -156,6 +156,7 @@ export class ProductController {
     let parsedData: UpdateProductDto;
     try {
       parsedData = JSON.parse(data);
+      console.log('debug -1', parsedData);
     } catch (error) {
       console.log(error);
       throw new BadRequestException('Invalid data format.');
@@ -216,6 +217,7 @@ export class ProductController {
         );
       }
     });
+    console.log('debug-2', parsedData);
     return this.productService.update(
       id,
       parsedData,

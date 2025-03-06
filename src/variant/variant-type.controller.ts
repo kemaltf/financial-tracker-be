@@ -25,7 +25,6 @@ export class VariantTypeController {
 
   @Get()
   async findAll(@GetUser() user: User, @Query('storeId') storeId: number) {
-    console.log('========>', storeId);
     return this.variantTypeService.findAll(user, storeId);
   }
 

@@ -97,3 +97,16 @@ Nest is an MIT-licensed open source project. It can grow thanks to the sponsors 
 ## License
 
 Nest is [MIT licensed](https://github.com/nestjs/nest/blob/master/LICENSE).
+
+## Common error
+
+1. Error during migration generation: Forgot to rename entity data as `.entity.ts`
+2.
+
+## How to create DB and migrate
+
+1. npm run db:createDB
+2. npm run db:generate => this will create folder migrations
+3. npm run db:runMigration => this will execute file inside this folder `migrations/...`
+4. npm run start:dev => will generate dist folder
+5. npm run db:seeder => will execute js script to seed the database using typeorm

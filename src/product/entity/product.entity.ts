@@ -11,9 +11,9 @@ import {
   OneToMany,
   Unique,
 } from 'typeorm';
-import { Image } from 'src/image/image.entity';
 import { ProductVariant } from './product-variant.entity';
 import { ColumnNumericTransformer } from '@app/common/transformer/column-numeric.transformer';
+import { ProductImage } from './product-images.entity';
 
 // e.g *jika huruf mtO onya besar berarti disimpan idnya di tabel ini
 // name    | sku     | desc                 | stock | price  | categories (mtm)| store (mtO) | variants (otM)  | images (mtm)|
@@ -59,11 +59,10 @@ export class Product {
   })
   variants: ProductVariant[];
 
-  @ManyToMany(() => Image, (image) => image.products, {
-    cascade: false, // Hindari cascade agar Image tidak ikut terhapus
-    onDelete: 'CASCADE', // Hanya hapus dari tabel pivot
+  @OneToMany(() => ProductImage, (productImage) => productImage.product, {
+    cascade: true,
   })
-  images: Image[];
+  productImages: ProductImage[];
 
   @CreateDateColumn({ type: 'datetime', name: 'created_at' })
   createdAt: Date;

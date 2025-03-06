@@ -141,6 +141,7 @@ export class CategoryService {
   }
 
   // Delete a category
+  @HandleErrors()
   async remove(id: number, user: User): Promise<void> {
     const category = await this.findOne(id, user); // check if exists
     if (category.store.user.id !== user.id) {
