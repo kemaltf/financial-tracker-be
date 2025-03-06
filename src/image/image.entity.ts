@@ -8,11 +8,12 @@ import {
   JoinTable,
   ManyToOne,
   JoinColumn,
+  OneToMany,
 } from 'typeorm';
 import { ProductVariant } from 'src/product/entity/product-variant.entity';
-import { Product } from 'src/product/entity/product.entity';
 import { User } from '@app/user/user.entity';
 import { Store } from '@app/store/store.entity';
+import { ProductImage } from '@app/product/entity/product-images.entity';
 
 @Entity('images')
 export class Image {
@@ -31,13 +32,10 @@ export class Image {
   @Column({ type: 'bigint' })
   size: number; // Ukuran file dalam byte
 
-  @ManyToMany(() => Product, (product) => product.images)
-  @JoinTable({
-    name: 'product_images',
-    joinColumn: { name: 'image_id', referencedColumnName: 'id' },
-    inverseJoinColumn: { name: 'product_id', referencedColumnName: 'id' },
+  @OneToMany(() => ProductImage, (productImage) => productImage.image, {
+    cascade: true,
   })
-  products: Product[];
+  productImages: ProductImage[];
 
   @ManyToMany(() => ProductVariant, (variant) => variant.images)
   @JoinTable({

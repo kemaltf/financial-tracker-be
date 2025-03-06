@@ -8,6 +8,7 @@ import {
   IsArray,
   IsObject,
   ValidateNested,
+  ValidateIf,
 } from 'class-validator';
 
 export class CreateProductVariantDto {
@@ -30,7 +31,12 @@ export class CreateProductVariantDto {
   stock: number;
 
   @IsOptional()
+  @ValidateIf(
+    (_, value) =>
+      value === null ||
+      (Array.isArray(value) && value.every((v) => typeof v === 'number')),
+  )
   @IsArray()
   @IsInt({ each: true })
-  imageIds?: number[];
+  imageIds?: number[] | null;
 }
