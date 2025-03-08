@@ -39,6 +39,14 @@ export class ProductVariant {
   @Column({ type: 'int' })
   stock: number;
 
+  @Column({
+    type: 'decimal',
+    precision: 10,
+    scale: 2,
+    transformer: new ColumnNumericTransformer(),
+  })
+  weight: number;
+
   // di cascade dulu bagian yang mau di delete on cascadenya
   @OneToMany(
     () => ProductVariantOptions,

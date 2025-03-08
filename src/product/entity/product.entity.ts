@@ -46,6 +46,42 @@ export class Product {
   })
   price: number;
 
+  // ✅ Kolom Baru: Dimensi dan Berat Produk
+  @Column({
+    type: 'decimal',
+    precision: 10,
+    scale: 2,
+    nullable: true,
+    transformer: new ColumnNumericTransformer(),
+  })
+  length: number | null;
+
+  @Column({
+    type: 'decimal',
+    precision: 10,
+    scale: 2,
+    nullable: true,
+    transformer: new ColumnNumericTransformer(),
+  })
+  width: number | null;
+
+  @Column({
+    type: 'decimal',
+    precision: 10,
+    scale: 2,
+    nullable: true,
+    transformer: new ColumnNumericTransformer(),
+  })
+  height: number | null;
+
+  @Column({
+    type: 'decimal',
+    precision: 10,
+    scale: 2,
+    transformer: new ColumnNumericTransformer(),
+  })
+  weight: number;
+
   @ManyToMany(() => Category, (category) => category.products, {
     cascade: false, // Hindari cascade agar Image tidak ikut terhapus
     onDelete: 'CASCADE', // Hanya hapus dari tabel pivot

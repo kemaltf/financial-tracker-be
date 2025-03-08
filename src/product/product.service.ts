@@ -100,7 +100,7 @@ export class ProductService {
         variantImageIdsMap[parseInt(variantIndex, 10)] =
           uploadedVariantImages.map((image) => image.id);
       }
-      // Simpann hasil savenya ke imageIds
+      // Simpan hasil savenya ke imageIds
       createProductDto.variants = createProductDto.variants.map(
         (variant, index) => ({
           ...variant,
@@ -154,6 +154,10 @@ export class ProductService {
         product.price = createProductDto.price;
         product.store = store;
         product.categories = categories;
+        product.length = createProductDto.length;
+        product.width = createProductDto.width;
+        product.height = createProductDto.height;
+        product.weight = createProductDto.weight;
 
         const savedProduct = await transactionalEntityManager.save(
           Product,
@@ -306,6 +310,7 @@ export class ProductService {
             productVariant.stock = variantDto.stock;
             productVariant.store = store;
             productVariant.name = `${savedProduct.name} - (${variantNamesString})`;
+            productVariant.weight = variantDto.weight;
 
             // Simpan gambar varian (jika ada) - Many-to-Many
             if (variantDto.imageIds && variantDto.imageIds.length > 0) {
@@ -534,6 +539,10 @@ export class ProductService {
             updateProductDto.categories ?? product.categories.map((c) => c.id),
           ),
         });
+        product.length = updateProductDto.length;
+        product.width = updateProductDto.width;
+        product.height = updateProductDto.height;
+        product.weight = updateProductDto.weight;
 
         const updatedProduct = await transactionalEntityManager.save(
           Product,
@@ -694,6 +703,7 @@ export class ProductService {
             productVariant.stock = variantDto.stock;
             productVariant.store = updatedProduct.store;
             productVariant.name = `${updatedProduct.name} - (${variantNamesString})`;
+            productVariant.weight = variantDto.weight;
 
             // Simpan gambar varian (jika ada) - Many-to-Many
             if (variantDto.imageIds && variantDto.imageIds.length > 0) {
@@ -791,6 +801,10 @@ export class ProductService {
       sku: product.sku,
       description: product.description,
       stock: product.stock,
+      length: product.length,
+      width: product.width,
+      height: product.height,
+      weight: product.weight,
       price: product.price,
       store: {
         id: product.store.id,
@@ -815,6 +829,7 @@ export class ProductService {
         price: variant.price,
         stock: variant.stock,
         name: variant.name,
+        weight: variant.weight,
         image: variant.images.map((image) => ({
           url: image.url,
           name: image.key,

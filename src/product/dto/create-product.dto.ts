@@ -41,6 +41,22 @@ export class CreateProductDto {
   @IsNotEmpty()
   storeId: number; // Store ID
 
+  @IsNumber()
+  @IsOptional()
+  length: number;
+
+  @IsNumber()
+  @IsOptional()
+  width: number;
+
+  @IsNumber()
+  @IsOptional()
+  height: number;
+
+  @IsNumber()
+  @IsNotEmpty()
+  weight: number;
+
   @IsOptional()
   @ValidateIf(
     (_, value) =>
