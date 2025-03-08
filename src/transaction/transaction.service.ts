@@ -11,7 +11,7 @@ import { AddressDTO, OrderDTO, TransactionDTO } from './dto/transaction.dto';
 import { TransactionType } from './transactionType/transaction-type.entity';
 import { SubAccount } from '@app/account/sub-account.entity';
 import { TransactionContact } from './transaction-contact/transaction-contact.entity';
-import { TransactionOrder } from './transactionProduct/transaction-product.entity';
+import { TransactionOrder } from './transaction-order/transaction-order.entity';
 import { Product } from '@app/product/entity/product.entity';
 import { Store } from '@app/store/store.entity';
 import {
@@ -359,6 +359,7 @@ export class TransactionService {
   ): Promise<Transaction> {
     const transaction = this.transactionRepository.create({
       transactionType: { id: transactionType.id },
+      originalAmount: amount,
       amount,
       note,
       store: { id: store?.id },
@@ -419,6 +420,7 @@ export class TransactionService {
     await queryRunner.manager.update(Transaction, transactionId, {
       transactionType: { id: transactionType.id },
       amount,
+      originalAmount: amount,
       note,
       store: { id: store?.id },
       customer: { id: customer?.id },

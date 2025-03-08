@@ -9,7 +9,7 @@ import { TransactionTypeModule } from './transaction/transactionType/transaction
 import { TransactionModule } from './transaction/transaction.module';
 import { ProductModule } from './product/product.module';
 import { CategoryModule } from './category/category.module';
-import { TransactionProductModule } from './transaction/transactionProduct/transaction-product.module';
+import { TransactionProductModule } from './transaction/transaction-order/transaction-order.module';
 import { TransactionContactModule } from './transaction/transaction-contact/transaction-contact.module';
 import { StoreModule } from './store/store.module';
 import { AccountModule } from './account/account.module';
@@ -18,6 +18,7 @@ import { ImageModule } from './image/image.module';
 import { AWSS3Module } from './aws/aws-s3.module';
 import { CustomerModule } from './financial-party/financial-party.module';
 import { DebtsAndReceivablesModule } from './debt-receivable/debts-and-receivables.module';
+import { RajaOngkirModule } from './rajaongkir/raja-ongkir.module';
 
 @Module({
   imports: [
@@ -37,6 +38,7 @@ import { DebtsAndReceivablesModule } from './debt-receivable/debts-and-receivabl
     VariantModule,
     CustomerModule,
     DebtsAndReceivablesModule,
+    RajaOngkirModule,
     ConfigModule.forRoot({
       envFilePath: '.env.development.local',
       isGlobal: true,

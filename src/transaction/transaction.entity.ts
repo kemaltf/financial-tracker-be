@@ -1,7 +1,7 @@
 import { FinancialParty } from '@app/financial-party/entity/financial-party.entity';
 import { Store } from 'src/store/store.entity';
 import { TransactionContact } from '@app/transaction/transaction-contact/transaction-contact.entity';
-import { TransactionOrder } from '@app/transaction/transactionProduct/transaction-product.entity';
+import { TransactionOrder } from '@app/transaction/transaction-order/transaction-order.entity';
 import { TransactionType } from '@app/transaction/transactionType/transaction-type.entity';
 import { User } from 'src/user/user.entity';
 import {
@@ -18,6 +18,8 @@ import {
 import { ColumnNumericTransformer } from '@app/common/transformer/column-numeric.transformer';
 import { DebtsAndReceivables } from '@app/debt-receivable/debts-and-receivables.entity';
 import { SubAccount } from '@app/account/sub-account.entity';
+import { Promo } from '@app/discount/promo.entity';
+import { Shipping } from './shipping/shipping.entity';
 @Entity('transactions')
 export class Transaction {
   @PrimaryGeneratedColumn()
@@ -31,7 +33,16 @@ export class Transaction {
   @JoinColumn({ name: 'transaction_type_id' })
   transactionType: TransactionType;
 
-  // NOMINAL TRANSACTION
+  // NOMINAL TRANSACTION SEBELUM ADA POTONGAN
+  @Column({
+    type: 'decimal',
+    precision: 15,
+    scale: 2,
+    transformer: new ColumnNumericTransformer(),
+  })
+  originalAmount: number;
+
+  // NOMINAL TRANSACTION YANG DIBAYARKAN
   @Column({
     type: 'decimal',
     precision: 15,
@@ -93,6 +104,31 @@ export class Transaction {
     onDelete: 'CASCADE',
   }) // Menambahkan cascade delete
   store: Store;
+
+  // Relasi ke Promo
+  @ManyToOne(() => Promo, (promo) => promo.transactions, { nullable: true })
+  @JoinColumn({ name: 'promo_id' })
+  promo?: Promo; // ID promo yang digunakan (jika ada)
+
+  // Simpan salinan promo saat transaksi dilakukan
+  @Column({ nullable: true })
+  promoCode?: string; // Kode promo yang digunakan
+
+  @Column('decimal', { precision: 10, scale: 2, nullable: true })
+  promoDiscount?: number; // Diskon yang diberikan dari promo
+
+  @Column({ nullable: true })
+  promoType?: 'PERCENTAGE' | 'NOMINAL'; // Jenis diskon (persentase atau nominal)
+
+  @Column('decimal', { precision: 10, scale: 2, nullable: true })
+  promoMaxDiscount?: number; // Maksimal potongan dari promo (jika ada)
+
+  // shipping
+  @OneToOne(() => Shipping, (shipping) => shipping.transaction, {
+    nullable: true,
+  })
+  @JoinColumn()
+  shipping?: Shipping;
 
   @CreateDateColumn({ type: 'timestamp', name: 'created_at' })
   createdAt: Date;
