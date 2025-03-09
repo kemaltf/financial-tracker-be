@@ -418,6 +418,7 @@ export class ProductService {
       description: product.description,
       stock: product.stock,
       price: product.price,
+      weight: product.weight,
       image: product.productImages
         .sort((a, b) => a.order - b.order) // Urutkan gambar dari pivot
         ?.at(0)?.image.url, // Ambil gambar pertama
@@ -430,6 +431,7 @@ export class ProductService {
         description: product.description,
         stock: variant.stock,
         price: variant.price,
+        weight: variant.weight,
         image: variant.images?.[0]?.url, // Bisa pakai gambar dari parent
         id: variant.id,
       })),
