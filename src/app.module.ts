@@ -19,6 +19,7 @@ import { AWSS3Module } from './aws/aws-s3.module';
 import { CustomerModule } from './financial-party/financial-party.module';
 import { DebtsAndReceivablesModule } from './debt-receivable/debts-and-receivables.module';
 import { RajaOngkirModule } from './rajaongkir/raja-ongkir.module';
+import { CourierModule } from './courier/courier.module';
 
 @Module({
   imports: [
@@ -39,6 +40,7 @@ import { RajaOngkirModule } from './rajaongkir/raja-ongkir.module';
     CustomerModule,
     DebtsAndReceivablesModule,
     RajaOngkirModule,
+    CourierModule,
     ConfigModule.forRoot({
       envFilePath: '.env.development.local',
       isGlobal: true,
