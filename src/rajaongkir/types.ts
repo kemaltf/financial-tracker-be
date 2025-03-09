@@ -43,7 +43,7 @@ export type ShippingCostProps = {
   lenght?: number | undefined;
   width?: number | undefined;
   height?: number | undefined;
-  courier: CourierType;
+  courier: CourierType[];
 };
 export type InternationalShippingCostProps = {
   origin: string; // id city/subdistict asal
