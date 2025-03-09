@@ -7,7 +7,7 @@ import * as T from './types';
 import { lastValueFrom } from 'rxjs';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Courier } from '@app/courier/entity/courier.entity';
-import { Repository } from 'typeorm';
+import { In, Repository } from 'typeorm';
 import { Store } from '@app/store/store.entity';
 
 type GetSubdistrictType = {
@@ -106,48 +106,72 @@ export class RajaOngkirService {
     storeId,
   ): Promise<T.ShippingCostResponse['rajaongkir']> {
     const url = `${this.baseUrl}/cost`;
-    // Fetch allowed services from database
 
-    const courier = await this.courierRepository.findOne({
+    // Pastikan params.courier adalah array
+    if (!Array.isArray(params.courier) || params.courier.length === 0) {
+      throw new Error('Minimal satu kurir harus dipilih');
+    }
+
+    // Fetch daftar kurir yang diizinkan untuk store tertentu
+    const couriers = await this.courierRepository.find({
       where: {
-        courierCode: params.courier, // Misalnya 'jne'
-        store: { id: storeId }, // Pastikan storeId dikirim di params
+        courierCode: In(params.courier), // Filter berdasarkan array kurir
+        store: { id: storeId },
       },
       relations: ['store'],
     });
 
-    if (!courier) {
-      throw new Error('Courier not found for the selected store');
+    if (!couriers.length) {
+      throw new Error('Tidak ada kurir yang tersedia untuk toko ini');
     }
 
-    return await lastValueFrom(
-      this.httpService
-        .post(url, params, {
-          headers: {
-            key: this.apiKey,
-          },
-        })
-        .pipe(
-          map((response) => {
-            const rajaongkir = response.data.rajaongkir;
+    // Fetch data pengiriman untuk setiap kurir
+    const responses = await Promise.all(
+      params.courier.map(async (courierCode) => {
+        const response = await lastValueFrom(
+          this.httpService
+            .post(
+              url,
+              { ...params, courier: courierCode },
+              { headers: { key: this.apiKey } },
+            )
+            .pipe(map((res) => res.data.rajaongkir)),
+        );
 
-            // Filter hanya layanan yang diperbolehkan
-            rajaongkir.results = rajaongkir.results.map((result) => ({
-              ...result,
-              costs: result.costs.filter((cost) =>
-                courier.allowedServices.includes(cost.service),
-              ),
-            }));
-
-            // Hapus hasil yang tidak memiliki layanan setelah difilter
-            rajaongkir.results = rajaongkir.results.filter(
-              (result) => result.costs.length > 0,
-            );
-
-            return rajaongkir;
-          }),
-        ),
+        return response;
+      }),
     );
+
+    console.log('=>', JSON.stringify(responses));
+
+    // Gabungkan hasil dari berbagai kurir dan filter layanan yang diizinkan
+    const combinedResults = responses.flatMap((rajaongkir) =>
+      rajaongkir.results.map((result) => {
+        const allowedCourier = couriers.find(
+          (c) => c.courierCode === result.code,
+        );
+        return {
+          ...result,
+          costs: result.costs.filter((cost) =>
+            allowedCourier?.allowedServices.includes(cost.service),
+          ),
+        };
+      }),
+    );
+
+    // Hanya ambil yang memiliki layanan tersedia
+    return {
+      query: {
+        origin: params.origin,
+        destination: params.destination,
+        weight: params.weight,
+        courier: params.courier.join(','),
+      },
+      status: responses[0].status,
+      origin_details: responses[0].origin_details,
+      destination_details: responses[0].destination_details,
+      results: combinedResults.filter((result) => result.costs.length > 0),
+    };
   }
 
   @HandleErrors()
