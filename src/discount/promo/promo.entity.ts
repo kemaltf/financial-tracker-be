@@ -1,11 +1,14 @@
+import { Transaction } from '@app/transaction/transaction.entity';
 import { Entity, PrimaryGeneratedColumn, Column, OneToMany } from 'typeorm';
-import { Transaction } from 'src/transaction/transaction.entity';
 
 // PROMO ADALAH DISKON TIPE KODE KUPON
 @Entity('promo')
 export class Promo {
   @PrimaryGeneratedColumn()
   id: number;
+
+  @Column()
+  eventName: string; // Nama event diskon (contoh: "Diskon Lebaran")
 
   @Column({ unique: true })
   code: string; // Kode kupon
@@ -45,6 +48,9 @@ export class Promo {
 
   @Column('timestamp')
   endDate: Date;
+
+  @Column({ type: 'boolean', default: true })
+  isActive: boolean; // Status promo (aktif/tidak)
 
   @OneToMany(() => Transaction, (transaction) => transaction.promo)
   transactions: Transaction[];
