@@ -359,7 +359,7 @@ export class TransactionService {
   ): Promise<Transaction> {
     const transaction = this.transactionRepository.create({
       transactionType: { id: transactionType.id },
-      originalAmount: amount,
+      subTotal: amount,
       amount,
       note,
       store: { id: store?.id },
@@ -420,7 +420,7 @@ export class TransactionService {
     await queryRunner.manager.update(Transaction, transactionId, {
       transactionType: { id: transactionType.id },
       amount,
-      originalAmount: amount,
+      subTotal: amount,
       note,
       store: { id: store?.id },
       customer: { id: customer?.id },

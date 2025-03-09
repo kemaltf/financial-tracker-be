@@ -18,8 +18,8 @@ import {
 import { ColumnNumericTransformer } from '@app/common/transformer/column-numeric.transformer';
 import { DebtsAndReceivables } from '@app/debt-receivable/debts-and-receivables.entity';
 import { SubAccount } from '@app/account/sub-account.entity';
-import { Promo } from '@app/discount/promo.entity';
 import { Shipping } from './shipping/shipping.entity';
+import { Promo } from '@app/discount/promo/promo.entity';
 @Entity('transactions')
 export class Transaction {
   @PrimaryGeneratedColumn()
@@ -40,7 +40,47 @@ export class Transaction {
     scale: 2,
     transformer: new ColumnNumericTransformer(),
   })
-  originalAmount: number;
+  subTotal: number; // total transaksi sebelum dikasih biaya lain
+
+  @Column({
+    type: 'decimal',
+    precision: 15,
+    scale: 2,
+    transformer: new ColumnNumericTransformer(),
+  })
+  shippingCost: number;
+
+  @Column({
+    type: 'decimal',
+    precision: 15,
+    scale: 2,
+    transformer: new ColumnNumericTransformer(),
+  })
+  discountShipping: number;
+
+  @Column({
+    type: 'decimal',
+    precision: 15,
+    scale: 2,
+    transformer: new ColumnNumericTransformer(),
+  })
+  serviceFee: number;
+
+  @Column({
+    type: 'decimal',
+    precision: 15,
+    scale: 2,
+    transformer: new ColumnNumericTransformer(),
+  })
+  insuranceFee: number;
+
+  @Column({
+    type: 'decimal',
+    precision: 15,
+    scale: 2,
+    transformer: new ColumnNumericTransformer(),
+  })
+  promoDiscount?: number; // Diskon yang diberikan dari promo
 
   // NOMINAL TRANSACTION YANG DIBAYARKAN
   @Column({
@@ -49,7 +89,7 @@ export class Transaction {
     scale: 2,
     transformer: new ColumnNumericTransformer(),
   })
-  amount: number;
+  amount: number; // total transakasi setelah semuanya dibayarkan
 
   // NOTES TRANSACTION / DESCRIPTION
   @Column({ type: 'text' })
@@ -109,19 +149,6 @@ export class Transaction {
   @ManyToOne(() => Promo, (promo) => promo.transactions, { nullable: true })
   @JoinColumn({ name: 'promo_id' })
   promo?: Promo; // ID promo yang digunakan (jika ada)
-
-  // Simpan salinan promo saat transaksi dilakukan
-  @Column({ nullable: true })
-  promoCode?: string; // Kode promo yang digunakan
-
-  @Column('decimal', { precision: 10, scale: 2, nullable: true })
-  promoDiscount?: number; // Diskon yang diberikan dari promo
-
-  @Column({ nullable: true })
-  promoType?: 'PERCENTAGE' | 'NOMINAL'; // Jenis diskon (persentase atau nominal)
-
-  @Column('decimal', { precision: 10, scale: 2, nullable: true })
-  promoMaxDiscount?: number; // Maksimal potongan dari promo (jika ada)
 
   // shipping
   @OneToOne(() => Shipping, (shipping) => shipping.transaction, {
