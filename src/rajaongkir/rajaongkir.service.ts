@@ -5,6 +5,10 @@ import { map } from 'rxjs/operators';
 import { HandleErrors } from 'src/common/decorators';
 import * as T from './types';
 import { lastValueFrom } from 'rxjs';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Courier } from '@app/courier/entity/courier.entity';
+import { Repository } from 'typeorm';
+import { Store } from '@app/store/store.entity';
 
 type GetSubdistrictType = {
   cityId?: string | null;
@@ -19,6 +23,12 @@ export class RajaOngkirService {
   constructor(
     private readonly httpService: HttpService,
     private readonly configService: ConfigService,
+
+    @InjectRepository(Courier)
+    private readonly courierRepository: Repository<Courier>,
+
+    @InjectRepository(Store)
+    private readonly storeRepository: Repository<Store>,
   ) {
     this.apiKey = this.configService.get<string>('RAJA_ONGKIR_API_KEY');
     this.baseUrl = this.configService.get<string>('RAJA_ONGKIR_API');
@@ -93,8 +103,23 @@ export class RajaOngkirService {
   @HandleErrors()
   async getShippingCost(
     params: T.ShippingCostProps,
+    storeId,
   ): Promise<T.ShippingCostResponse['rajaongkir']> {
     const url = `${this.baseUrl}/cost`;
+    // Fetch allowed services from database
+
+    const courier = await this.courierRepository.findOne({
+      where: {
+        courierCode: params.courier, // Misalnya 'jne'
+        store: { id: storeId }, // Pastikan storeId dikirim di params
+      },
+      relations: ['store'],
+    });
+
+    if (!courier) {
+      throw new Error('Courier not found for the selected store');
+    }
+
     return await lastValueFrom(
       this.httpService
         .post(url, params, {
@@ -102,7 +127,26 @@ export class RajaOngkirService {
             key: this.apiKey,
           },
         })
-        .pipe(map((response) => response.data.rajaongkir)),
+        .pipe(
+          map((response) => {
+            const rajaongkir = response.data.rajaongkir;
+
+            // Filter hanya layanan yang diperbolehkan
+            rajaongkir.results = rajaongkir.results.map((result) => ({
+              ...result,
+              costs: result.costs.filter((cost) =>
+                courier.allowedServices.includes(cost.service),
+              ),
+            }));
+
+            // Hapus hasil yang tidak memiliki layanan setelah difilter
+            rajaongkir.results = rajaongkir.results.filter(
+              (result) => result.costs.length > 0,
+            );
+
+            return rajaongkir;
+          }),
+        ),
     );
   }
 

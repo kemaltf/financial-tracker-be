@@ -4,6 +4,7 @@ import {
   Get,
   HttpCode,
   HttpStatus,
+  Param,
   Post,
   Query,
 } from '@nestjs/common';
@@ -42,9 +43,12 @@ export class RajaOngkirController {
   }
 
   @HttpCode(HttpStatus.OK)
-  @Post('cost')
-  async getShippingCost(@Body() body: ShippingCostDto) {
-    return await this.rajaOngkirService.getShippingCost(body);
+  @Post('cost/:storeId')
+  async getShippingCost(
+    @Body() body: ShippingCostDto,
+    @Param('storeId') storeId: number,
+  ) {
+    return await this.rajaOngkirService.getShippingCost(body, storeId);
   }
   @HttpCode(HttpStatus.OK)
   @Get('countries')
