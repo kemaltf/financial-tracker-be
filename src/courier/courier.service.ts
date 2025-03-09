@@ -85,7 +85,7 @@ export class CourierService {
     // 2️⃣ List courier dan layanan dari RajaOngkir
     return [
       { label: 'JNE', code: 'jne', services: ['JTR', 'REG', 'OKE'] },
-      { label: 'POS', code: 'pos', services: ['Express', 'Reguler'] },
+      { label: 'POS', code: 'pos', services: ['Pos Reguler', 'Pos Nextday'] },
       { label: 'TIKI', code: 'tiki', services: ['ONS', 'REG', 'ECO'] },
       { label: 'SiCepat', code: 'sicepat', services: ['BEST', 'REG'] },
       { label: 'AnterAja', code: 'anteraja', services: ['SameDay', 'NextDay'] },
