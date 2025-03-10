@@ -5,6 +5,8 @@ import {
   IsOptional,
   IsDateString,
   IsNotEmpty,
+  IsArray,
+  ValidateIf,
 } from 'class-validator';
 
 export class CreatePromoDto {
@@ -34,6 +36,15 @@ export class CreatePromoDto {
 
   @IsDateString()
   endDate: string;
+
+  // 🆕 Wajib diisi hanya jika applyTo = 'PRODUCT'
+  @ValidateIf((o) => o.applyTo === 'PRODUCT')
+  @IsArray()
+  @IsNotEmpty({ each: true })
+  productIds?: number[];
+
+  @IsNumber()
+  storeId: number;
 }
 
 export class UpdatePromoDto extends CreatePromoDto {}

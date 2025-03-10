@@ -1,9 +1,19 @@
+import { Product } from '@app/product/entity/product.entity';
+import { Store } from '@app/store/store.entity';
 import { Transaction } from '@app/transaction/transaction.entity';
-import { Entity, PrimaryGeneratedColumn, Column, OneToMany } from 'typeorm';
+import {
+  Entity,
+  PrimaryGeneratedColumn,
+  Column,
+  OneToMany,
+  ManyToMany,
+  JoinTable,
+  ManyToOne,
+} from 'typeorm';
 
 // PROMO ADALAH DISKON TIPE KODE KUPON
-@Entity('promo')
-export class Promo {
+@Entity('voucher')
+export class Voucher {
   @PrimaryGeneratedColumn()
   id: number;
 
@@ -54,4 +64,16 @@ export class Promo {
 
   @OneToMany(() => Transaction, (transaction) => transaction.promo)
   transactions: Transaction[];
+
+  // 🆕 Relasi ke produk untuk voucher yang berlaku pada produk tertentu
+  @ManyToMany(() => Product, (product) => product.vouchers)
+  @JoinTable({
+    name: 'voucher_products',
+    joinColumn: { name: 'voucherId', referencedColumnName: 'id' },
+    inverseJoinColumn: { name: 'productId', referencedColumnName: 'id' },
+  })
+  products: Product[];
+
+  @ManyToOne(() => Store, (store) => store.vouchers, { nullable: false })
+  store: Store;
 }
