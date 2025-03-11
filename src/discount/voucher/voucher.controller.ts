@@ -18,13 +18,13 @@ export class VoucherController {
   constructor(private readonly voucherService: VoucherService) {}
 
   @Get()
-  async findAll(): Promise<Voucher[]> {
-    return await this.voucherService.findAll();
+  async findAll(@GetUser() user: User): Promise<Voucher[]> {
+    return await this.voucherService.findAll(user);
   }
 
   @Get(':id')
-  async findOne(@Param('id') id: number): Promise<Voucher> {
-    return await this.voucherService.findOne(id);
+  async findOne(@Param('id') id: number, @GetUser() user: User) {
+    return await this.voucherService.findOne(id, user);
   }
 
   @Post()
@@ -39,12 +39,13 @@ export class VoucherController {
   async update(
     @Param('id') id: number,
     @Body() updatePromoDto: UpdatePromoDto,
+    @GetUser() user: User,
   ): Promise<Voucher> {
-    return await this.voucherService.update(id, updatePromoDto);
+    return await this.voucherService.update(id, updatePromoDto, user);
   }
 
   @Delete(':id')
-  async delete(@Param('id') id: number): Promise<void> {
-    return await this.voucherService.delete(id);
+  async delete(@Param('id') id: number, @GetUser() user: User): Promise<void> {
+    return await this.voucherService.delete(id, user);
   }
 }
