@@ -34,6 +34,10 @@ class UpdateProductVariantDto {
   @IsNumber()
   stock?: number; // Stok varian
 
+  @IsNumber()
+  @IsNotEmpty()
+  weight: number;
+
   @IsOptional()
   @IsArray()
   @IsInt({ each: true })
@@ -61,9 +65,21 @@ export class UpdateProductDto {
   @IsNumber()
   stock?: number; // Stok produk
 
-  // @IsOptional()
-  // @IsInt()
-  // storeId?: number; // ID store yang terkait
+  @IsNumber()
+  @IsOptional()
+  length: number;
+
+  @IsNumber()
+  @IsOptional()
+  width: number;
+
+  @IsNumber()
+  @IsOptional()
+  height: number;
+
+  @IsNumber()
+  @IsNotEmpty()
+  weight: number;
 
   @IsOptional()
   @IsArray()

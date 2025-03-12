@@ -108,5 +108,4 @@ Nest is [MIT licensed](https://github.com/nestjs/nest/blob/master/LICENSE).
 1. npm run db:createDB
 2. npm run db:generate => this will create folder migrations
 3. npm run db:runMigration => this will execute file inside this folder `migrations/...`
-4. npm run start:dev => will generate dist folder
-5. npm run db:seeder => will execute js script to seed the database using typeorm
+4. npm run db:seeder => will execute js script to seed the database using typeorm

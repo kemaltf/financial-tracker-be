@@ -30,6 +30,10 @@ export class CreateProductVariantDto {
   @IsNotEmpty()
   stock: number;
 
+  @IsNumber()
+  @IsNotEmpty()
+  weight: number;
+
   @IsOptional()
   @ValidateIf(
     (_, value) =>

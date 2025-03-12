@@ -14,6 +14,7 @@ import {
 import { ProductVariant } from './product-variant.entity';
 import { ColumnNumericTransformer } from '@app/common/transformer/column-numeric.transformer';
 import { ProductImage } from './product-images.entity';
+import { EventDiscount } from '@app/discount/event-discount.entity';
 
 // e.g *jika huruf mtO onya besar berarti disimpan idnya di tabel ini
 // name    | sku     | desc                 | stock | price  | categories (mtm)| store (mtO) | variants (otM)  | images (mtm)|
@@ -45,6 +46,42 @@ export class Product {
   })
   price: number;
 
+  // ✅ Kolom Baru: Dimensi dan Berat Produk
+  @Column({
+    type: 'decimal',
+    precision: 10,
+    scale: 2,
+    nullable: true,
+    transformer: new ColumnNumericTransformer(),
+  })
+  length: number | null;
+
+  @Column({
+    type: 'decimal',
+    precision: 10,
+    scale: 2,
+    nullable: true,
+    transformer: new ColumnNumericTransformer(),
+  })
+  width: number | null;
+
+  @Column({
+    type: 'decimal',
+    precision: 10,
+    scale: 2,
+    nullable: true,
+    transformer: new ColumnNumericTransformer(),
+  })
+  height: number | null;
+
+  @Column({
+    type: 'decimal',
+    precision: 10,
+    scale: 2,
+    transformer: new ColumnNumericTransformer(),
+  })
+  weight: number;
+
   @ManyToMany(() => Category, (category) => category.products, {
     cascade: false, // Hindari cascade agar Image tidak ikut terhapus
     onDelete: 'CASCADE', // Hanya hapus dari tabel pivot
@@ -69,4 +106,7 @@ export class Product {
 
   @UpdateDateColumn({ type: 'datetime', name: 'updated_at' })
   updatedAt: Date;
+
+  @ManyToMany(() => EventDiscount, (eventDiscount) => eventDiscount.products)
+  eventDiscounts: EventDiscount[];
 }

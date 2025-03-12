@@ -1,4 +1,5 @@
 import { ColumnNumericTransformer } from '@app/common/transformer/column-numeric.transformer';
+import { EventDiscount } from '@app/discount/event-discount.entity';
 import { Transaction } from 'src/transaction/transaction.entity';
 import {
   Entity,
@@ -39,9 +40,6 @@ export class TransactionOrder {
   @Column('int')
   quantity: number; // Jumlah produk yang dibeli
 
-  @Column('decimal', { precision: 10, scale: 2, nullable: true })
-  discount: number; // Diskon yang diberikan (opsional)
-
   @Column({
     type: 'decimal',
     precision: 15,
@@ -50,4 +48,42 @@ export class TransactionOrder {
     transformer: new ColumnNumericTransformer(),
   })
   totalPrice: number; // Total setelah diskon
+
+  @Column({ nullable: true })
+  productImage?: string; // Gambar utama produk saat dibeli (opsional)
+
+  @Column({ type: 'text', nullable: true })
+  productCategories?: string; // Simpan kategori dalam JSON string (opsional)
+
+  // 🔥 Relasi ke Event Discount (Opsional)
+  @ManyToOne(() => EventDiscount, { nullable: true })
+  @JoinColumn({ name: 'event_discount_id' })
+  eventDiscount?: EventDiscount; // ID event diskon yang digunakan (jika ada)
+
+  // 🔥 Copy Data Event Discount ke TransactionOrder (Agar Fix)
+  @Column({ nullable: true })
+  eventDiscountName?: string; // Nama event diskon saat transaksi
+
+  @Column({
+    type: 'enum',
+    enum: ['PERCENTAGE', 'FIXED'],
+    nullable: true,
+  })
+  eventDiscountType?: 'PERCENTAGE' | 'FIXED'; // Jenis diskon yang diberikan
+
+  @Column({
+    type: 'decimal',
+    precision: 5,
+    scale: 2,
+    nullable: true,
+  })
+  eventDiscountValue?: number; // Nilai diskon saat transaksi
+
+  @Column({
+    type: 'decimal',
+    precision: 10,
+    scale: 2,
+    nullable: true,
+  })
+  eventMaxDiscount?: number; // Maksimal potongan saat transaksi
 }
