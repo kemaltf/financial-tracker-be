@@ -8,7 +8,7 @@ import {
   Delete,
 } from '@nestjs/common';
 import { VoucherService } from './voucher.service';
-import { CreatePromoDto, UpdatePromoDto } from './dto/create-voucher';
+import { CreateVoucherDto, UpdateVoucherDto } from './dto/create-voucher';
 import { Voucher } from './voucher.entity';
 import { GetUser } from '@app/common/decorators/get-user.decorator';
 import { User } from '@app/user/user.entity';
@@ -29,7 +29,7 @@ export class VoucherController {
 
   @Post()
   async create(
-    @Body() createPromoDto: CreatePromoDto,
+    @Body() createPromoDto: CreateVoucherDto,
     @GetUser() user: User,
   ): Promise<Voucher> {
     return await this.voucherService.create(createPromoDto, user);
@@ -38,7 +38,7 @@ export class VoucherController {
   @Patch(':id')
   async update(
     @Param('id') id: number,
-    @Body() updatePromoDto: UpdatePromoDto,
+    @Body() updatePromoDto: UpdateVoucherDto,
     @GetUser() user: User,
   ): Promise<Voucher> {
     return await this.voucherService.update(id, updatePromoDto, user);

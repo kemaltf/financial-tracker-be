@@ -6,22 +6,16 @@ import {
   IsDateString,
   IsNotEmpty,
   IsArray,
-  ValidateIf,
+  IsBoolean,
 } from 'class-validator';
 
-export class CreateVoucherDto {
-  @IsString()
-  code: string;
-
+export class CreateProductDiscountDto {
   @IsString()
   @IsNotEmpty()
   eventName: string;
 
   @IsEnum(['PERCENTAGE', 'FIXED'])
   discountType: 'PERCENTAGE' | 'FIXED';
-
-  @IsEnum(['PRODUCT', 'TOTAL'])
-  applyTo: 'PRODUCT' | 'TOTAL';
 
   @IsNumber()
   @IsOptional()
@@ -37,14 +31,16 @@ export class CreateVoucherDto {
   @IsDateString()
   endDate: string;
 
-  // 🆕 Wajib diisi hanya jika applyTo = 'PRODUCT'
-  @ValidateIf((o) => o.applyTo === 'PRODUCT')
   @IsArray()
   @IsNotEmpty({ each: true })
-  productIds?: number[];
+  productIds: number[];
+
+  @IsBoolean()
+  @IsOptional()
+  isActive?: boolean;
 
   @IsNumber()
   storeId: number;
 }
 
-export class UpdateVoucherDto extends CreateVoucherDto {}
+export class UpdateProductDiscountDto extends CreateProductDiscountDto {}

@@ -6,7 +6,7 @@ import {
 import { InjectRepository } from '@nestjs/typeorm';
 import { In, Repository } from 'typeorm';
 import { Voucher } from './voucher.entity';
-import { CreatePromoDto, UpdatePromoDto } from './dto/create-voucher';
+import { CreateVoucherDto, UpdateVoucherDto } from './dto/create-voucher';
 import { Product } from '@app/product/entity/product.entity';
 import { HandleErrors } from '@app/common/decorators';
 import { Store } from '@app/store/store.entity';
@@ -150,8 +150,7 @@ export class VoucherService {
   }
 
   @HandleErrors()
-  @HandleErrors()
-  async create(createPromoDto: CreatePromoDto, user: User): Promise<Voucher> {
+  async create(createPromoDto: CreateVoucherDto, user: User): Promise<Voucher> {
     const { productIds, storeId, ...promoData } = createPromoDto;
 
     const store = await this.storeRepository.findOne({
@@ -205,7 +204,7 @@ export class VoucherService {
 
   async update(
     id: number,
-    updatePromoDto: UpdatePromoDto,
+    updatePromoDto: UpdateVoucherDto,
     user: User,
   ): Promise<Voucher> {
     const { productIds, storeId, ...promoData } = updatePromoDto;
