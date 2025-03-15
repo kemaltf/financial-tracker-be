@@ -75,7 +75,6 @@ export class VoucherService {
     return promos.map((promo) => ({
       ...promo,
       products: promo.products.map((product) => {
-        console.log(product);
         return {
           ...product,
           productImage:
@@ -137,6 +136,7 @@ export class VoucherService {
         },
       },
     });
+
     if (!promo)
       throw new NotFoundException(`Promo dengan ID ${id} tidak ditemukan`);
 

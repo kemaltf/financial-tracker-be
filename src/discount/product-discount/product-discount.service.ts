@@ -32,19 +32,14 @@ export class ProductDiscountService {
     this.updateIsActive();
 
     // Ambil semua diskon yang sesuai dengan user
-    return await this.productDiscountRepository.find({
+    const productDiscounts = await this.productDiscountRepository.find({
       where: { store: { user } },
-      relations: ['store', 'products'],
-    });
-  }
-
-  async findOne(id: number, user: User): Promise<ProductDiscount> {
-    // Update isActive menjadi false jika endDate sudah lewat
-    this.updateIsActive();
-
-    const discount = await this.productDiscountRepository.findOne({
-      where: { id: id },
-      relations: ['store', 'products', 'store.user'],
+      relations: [
+        'store',
+        'products',
+        'products.productImages',
+        'products.productImages.image',
+      ],
       select: {
         discountType: true,
         discountValue: true,
@@ -53,17 +48,89 @@ export class ProductDiscountService {
         id: true,
         isActive: true,
         maxDiscount: true,
-        products: true,
         startDate: true,
         store: { id: true, user: { id: true } },
+        products: {
+          id: true,
+          name: true,
+          sku: true,
+          description: true,
+          stock: true,
+          price: true,
+          productImages: true,
+        },
       },
     });
+
+    // Mapping agar hanya mengambil satu gambar per produk
+    return productDiscounts.map((promo) => ({
+      ...promo,
+      products: promo.products.map((product) => {
+        return {
+          ...product,
+          productImage:
+            product.productImages?.length > 0
+              ? product.productImages[0].image.url
+              : null, // Ambil gambar pertama atau null
+          productImages: undefined, // Hapus array productImages dari response
+        };
+      }),
+    }));
+  }
+
+  async findOne(id: number, user: User): Promise<ProductDiscount> {
+    // Update isActive menjadi false jika endDate sudah lewat
+    this.updateIsActive();
+
+    const discount = await this.productDiscountRepository.findOne({
+      where: { id: id },
+      relations: [
+        'store',
+        'products',
+        'products.productImages',
+        'products.productImages.image',
+        'store.user',
+      ],
+      select: {
+        discountType: true,
+        discountValue: true,
+        endDate: true,
+        eventName: true,
+        id: true,
+        isActive: true,
+        maxDiscount: true,
+        startDate: true,
+        store: { id: true, user: { id: true } },
+        products: {
+          id: true,
+          name: true,
+          sku: true,
+          description: true,
+          stock: true,
+          price: true,
+          productImages: true,
+        },
+      },
+    });
+    console.log('=>', discount);
 
     if (!discount || discount.store.user.id !== user.id) {
       throw new NotFoundException(
         'Product discount not found or access denied',
       );
     }
+
+    discount.products = discount.products.map((product) => {
+      return {
+        ...product,
+        productImage:
+          product.productImages?.length > 0
+            ? product.productImages[0].image.url
+            : null,
+        productImages: undefined, // Hapus array productImages dari response
+      };
+    });
+
     return discount;
   }
 
@@ -118,7 +185,6 @@ export class ProductDiscountService {
         [productIds], // Parameter aman
       );
 
-      console.log('=>', existingDiscounts);
       if (existingDiscounts.length > 0) {
         const conflictedProducts: {
           id: string;
