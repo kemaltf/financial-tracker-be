@@ -1,5 +1,5 @@
 import { ColumnNumericTransformer } from '@app/common/transformer/column-numeric.transformer';
-import { EventDiscount } from '@app/discount/event-discount.entity';
+import { ProductDiscount } from '@app/discount/product-discount/product-discount.entity';
 import { Transaction } from 'src/transaction/transaction.entity';
 import {
   Entity,
@@ -56,9 +56,9 @@ export class TransactionOrder {
   productCategories?: string; // Simpan kategori dalam JSON string (opsional)
 
   // 🔥 Relasi ke Event Discount (Opsional)
-  @ManyToOne(() => EventDiscount, { nullable: true })
-  @JoinColumn({ name: 'event_discount_id' })
-  eventDiscount?: EventDiscount; // ID event diskon yang digunakan (jika ada)
+  @ManyToOne(() => ProductDiscount, { nullable: true })
+  @JoinColumn({ name: 'product_discount_id' })
+  productDiscount?: ProductDiscount; // ID event diskon yang digunakan (jika ada)
 
   // 🔥 Copy Data Event Discount ke TransactionOrder (Agar Fix)
   @Column({ nullable: true })

@@ -28,6 +28,10 @@ export class ProductDiscountService {
   ) {}
 
   async findAll(user: User): Promise<ProductDiscount[]> {
+    // Update isActive menjadi false jika endDate sudah lewat
+    this.updateIsActive();
+
+    // Ambil semua diskon yang sesuai dengan user
     return await this.productDiscountRepository.find({
       where: { store: { user } },
       relations: ['store', 'products'],
@@ -35,6 +39,9 @@ export class ProductDiscountService {
   }
 
   async findOne(id: number, user: User): Promise<ProductDiscount> {
+    // Update isActive menjadi false jika endDate sudah lewat
+    this.updateIsActive();
+
     const discount = await this.productDiscountRepository.findOne({
       where: { id: id },
       relations: ['store', 'products', 'store.user'],
@@ -65,6 +72,12 @@ export class ProductDiscountService {
     user: User,
   ): Promise<ProductDiscount> {
     const { storeId, productIds, ...discountData } = createProductDiscountDto;
+
+    if (new Date(createProductDiscountDto.startDate) < new Date()) {
+      throw new BadRequestException(
+        'Start date must be today or in the future.',
+      );
+    }
 
     const store = await this.storeRepository.findOne({
       where: { id: storeId, user },
@@ -106,7 +119,6 @@ export class ProductDiscountService {
       );
 
       console.log('=>', existingDiscounts);
-
       if (existingDiscounts.length > 0) {
         const conflictedProducts: {
           id: string;
@@ -258,6 +270,16 @@ export class ProductDiscountService {
       where: { id: discount.id },
       relations: ['store', 'products'],
     });
+  }
+
+  async updateIsActive() {
+    // Update isActive menjadi false jika endDate sudah lewat
+    await this.productDiscountRepository
+      .createQueryBuilder()
+      .update(ProductDiscount)
+      .set({ isActive: false })
+      .where('endDate < NOW() AND isActive = true')
+      .execute();
   }
 
   // Delete a category

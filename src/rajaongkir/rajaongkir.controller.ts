@@ -13,7 +13,10 @@ import * as T from './types';
 import { CreateProvincesDto } from './dto/create-provinces.dto';
 import { CreateCitiesDto } from './dto/create-cities.dto';
 import { CreateSubdistrictsDto } from './dto/create-subdistricts.dto';
-import { ShippingCostDto } from './dto/shipping-cost.dto';
+import {
+  SelectedShippingCostDto,
+  CourierListDto,
+} from './dto/shipping-cost.dto';
 import { CreateCountryDto } from './dto/create-countries';
 import { InternationalCostDto } from './dto/international-cost.dto';
 
@@ -43,13 +46,26 @@ export class RajaOngkirController {
   }
 
   @HttpCode(HttpStatus.OK)
-  @Post('cost/:storeId')
-  async getShippingCost(
-    @Body() body: ShippingCostDto,
+  @Post('courier/:storeId')
+  async getCourierList(
+    @Body() body: CourierListDto,
     @Param('storeId') storeId: number,
   ) {
-    return await this.rajaOngkirService.getShippingCost(body, storeId);
+    return await this.rajaOngkirService.getCourierList(body, storeId);
   }
+
+  @HttpCode(HttpStatus.OK)
+  @Post('cost/:storeId')
+  async getShippingCost(
+    @Body() body: SelectedShippingCostDto,
+    @Param('storeId') storeId: string,
+  ) {
+    return await this.rajaOngkirService.getSelectedShippingService(
+      body,
+      Number(storeId),
+    );
+  }
+
   @HttpCode(HttpStatus.OK)
   @Get('countries')
   async getCountries(@Query() query: CreateCountryDto) {

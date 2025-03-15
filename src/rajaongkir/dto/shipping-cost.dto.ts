@@ -1,7 +1,14 @@
-import { IsEnum, IsNumber, IsOptional, IsString } from 'class-validator';
+import {
+  ArrayNotEmpty,
+  IsArray,
+  IsEnum,
+  IsNumber,
+  IsOptional,
+  IsString,
+} from 'class-validator';
 import { CourierType, DestinationType, OriginType } from '../types';
 
-export class ShippingCostDto {
+export class CourierListDto {
   @IsString()
   origin: string;
 
@@ -17,8 +24,10 @@ export class ShippingCostDto {
   @IsNumber()
   weight: number;
 
-  @IsEnum(CourierType)
-  courier: CourierType;
+  @IsArray()
+  @ArrayNotEmpty()
+  @IsEnum(CourierType, { each: true })
+  courier: CourierType[];
 
   @IsOptional()
   @IsNumber()
@@ -31,4 +40,9 @@ export class ShippingCostDto {
   @IsOptional()
   @IsNumber()
   width?: number;
+}
+
+export class SelectedShippingCostDto extends CourierListDto {
+  @IsString()
+  service: string;
 }

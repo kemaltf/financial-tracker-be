@@ -1,4 +1,3 @@
-import { ColumnNumericTransformer } from '@app/common/transformer/column-numeric.transformer';
 import { Transaction } from 'src/transaction/transaction.entity';
 import {
   Entity,
@@ -27,14 +26,6 @@ export class Shipping {
 
   @Column()
   trackingNumber: string; // Nomor resi pengiriman
-
-  @Column({
-    type: 'decimal',
-    precision: 10,
-    scale: 2,
-    transformer: new ColumnNumericTransformer(),
-  })
-  shippingCost: number; // Biaya pengiriman
 
   @Column({
     type: 'enum',

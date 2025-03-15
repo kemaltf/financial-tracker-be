@@ -1,4 +1,7 @@
 import { Category } from '@app/category/category.entity';
+import { Courier } from '@app/courier/entity/courier.entity';
+import { ProductDiscount } from '@app/discount/product-discount/product-discount.entity';
+import { Voucher } from '@app/discount/voucher/voucher.entity';
 import { Image } from '@app/image/image.entity';
 import { ProductVariant } from '@app/product/entity/product-variant.entity';
 import { User } from '@app/user/user.entity';
@@ -46,6 +49,15 @@ export class Store {
 
   @OneToMany(() => Category, (category) => category.store)
   categories: Category[];
+
+  @OneToMany(() => Voucher, (voucher) => voucher.store)
+  vouchers: Voucher[];
+
+  @OneToMany(() => ProductDiscount, (productDiscount) => productDiscount.store)
+  productDiscount: ProductDiscount[];
+
+  @OneToMany(() => Courier, (courier) => courier.store)
+  couriers: Courier[];
 
   @OneToMany(() => Image, (image) => image.store)
   images: Image[];

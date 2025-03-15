@@ -23,6 +23,9 @@ export class VoucherService {
     private readonly storeRepository: Repository<Store>,
   ) {}
   async findAll(user: User): Promise<Voucher[]> {
+    // Update isActive menjadi false jika endDate sudah lewat
+    this.updateIsActive();
+
     const promos = await this.promoRepository.find({
       where: {
         store: {
@@ -86,6 +89,9 @@ export class VoucherService {
   }
 
   async findOne(id: number, user: User): Promise<Voucher> {
+    // Update isActive menjadi false jika endDate sudah lewat
+    this.updateIsActive();
+
     const promo = await this.promoRepository.findOne({
       where: {
         id,
@@ -147,6 +153,15 @@ export class VoucherService {
     });
 
     return promo;
+  }
+
+  async updateIsActive() {
+    await this.promoRepository
+      .createQueryBuilder()
+      .update(Voucher)
+      .set({ isActive: false })
+      .where('endDate < NOW() AND isActive = true')
+      .execute();
   }
 
   @HandleErrors()

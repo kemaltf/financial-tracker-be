@@ -19,7 +19,7 @@ import { ColumnNumericTransformer } from '@app/common/transformer/column-numeric
 import { DebtsAndReceivables } from '@app/debt-receivable/debts-and-receivables.entity';
 import { SubAccount } from '@app/account/sub-account.entity';
 import { Shipping } from './shipping/shipping.entity';
-import { Promo } from '@app/discount/promo/promo.entity';
+import { Voucher } from '@app/discount/voucher/voucher.entity';
 @Entity('transactions')
 export class Transaction {
   @PrimaryGeneratedColumn()
@@ -146,9 +146,9 @@ export class Transaction {
   store: Store;
 
   // Relasi ke Promo
-  @ManyToOne(() => Promo, (promo) => promo.transactions, { nullable: true })
+  @ManyToOne(() => Voucher, (promo) => promo.transactions, { nullable: true })
   @JoinColumn({ name: 'promo_id' })
-  promo?: Promo; // ID promo yang digunakan (jika ada)
+  promo?: Voucher; // ID promo yang digunakan (jika ada)
 
   // shipping
   @OneToOne(() => Shipping, (shipping) => shipping.transaction, {

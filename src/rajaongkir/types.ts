@@ -137,6 +137,8 @@ export type ShippingCostResponse = {
       postal_code: string;
     };
     destination_details: {
+      subdistrict_id?: string | undefined;
+
       city_id: string;
       province_id: string;
       province: string;
@@ -253,3 +255,46 @@ export type CheckWaybillResponse = {
     };
   };
 };
+
+export interface SelectedShippingProps {
+  origin: string;
+  originType: OriginType;
+  destination: string;
+  destinationType: DestinationType;
+  weight: number;
+  courier: CourierType[]; // Bisa lebih dari satu kurir, tapi hanya satu service yang dipilih
+  service: string; // Layanan spesifik yang dipilih user (misalnya "JTR", "REG")
+}
+
+export interface SelectedShippingResponse {
+  query: {
+    origin: string;
+    destination: string;
+    weight: number;
+    courier: string;
+    service: string;
+  };
+  origin_details: {
+    city_id: string;
+    province_id: string;
+    province: string;
+    type: string;
+    city_name: string;
+    postal_code: string;
+  };
+  destination_details: {
+    subdistrict_id?: string | undefined;
+    province_id: string;
+    province: string;
+    city_id: string;
+    city: string;
+    type: string;
+    subdistrict_name: string;
+    postal_code: string;
+  };
+  service: {
+    code: string;
+    service: string;
+    cost: number;
+  };
+}

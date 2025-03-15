@@ -101,7 +101,7 @@ export class RajaOngkirService {
   }
 
   @HandleErrors()
-  async getShippingCost(
+  async getCourierList(
     params: T.ShippingCostProps,
     storeId,
   ): Promise<T.ShippingCostResponse['rajaongkir']> {
@@ -171,6 +171,52 @@ export class RajaOngkirService {
       origin_details: responses[0].origin_details,
       destination_details: responses[0].destination_details,
       results: combinedResults.filter((result) => result.costs.length > 0),
+    };
+  }
+
+  @HandleErrors()
+  async getSelectedShippingService(
+    params: T.SelectedShippingProps,
+    storeId: number,
+  ): Promise<T.SelectedShippingResponse> {
+    const shippingData = await this.getCourierList(params, storeId);
+
+    if (!shippingData.results.length) {
+      throw new Error('Tidak ada hasil pengiriman yang tersedia');
+    }
+
+    // Cari kurir dan layanan yang sesuai dengan pilihan user
+    const selectedCourier = shippingData.results.find((courier) =>
+      courier.costs.some((cost) => cost.service === params.service),
+    );
+
+    if (!selectedCourier) {
+      throw new Error('Layanan yang dipilih tidak tersedia');
+    }
+
+    const selectedService = selectedCourier.costs.find(
+      (cost) => cost.service === params.service,
+    );
+
+    if (!selectedService) {
+      throw new Error('Layanan yang dipilih tidak ditemukan');
+    }
+
+    return {
+      query: {
+        origin: params.origin,
+        destination: params.destination,
+        weight: params.weight,
+        courier: params.courier.join(','),
+        service: params.service,
+      },
+      origin_details: shippingData.origin_details,
+      destination_details: shippingData.destination_details,
+      service: {
+        code: selectedCourier.code,
+        service: selectedService.service,
+        cost: selectedService.cost[0]?.value ?? 0, // Ambil nilai pertama atau default 0
+      },
     };
   }
 

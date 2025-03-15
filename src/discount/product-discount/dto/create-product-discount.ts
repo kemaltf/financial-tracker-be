@@ -1,3 +1,4 @@
+import { IsEndDateAfterStartDate } from '@app/common/validators';
 import {
   IsString,
   IsEnum,
@@ -7,6 +8,7 @@ import {
   IsNotEmpty,
   IsArray,
   IsBoolean,
+  Validate,
 } from 'class-validator';
 
 export class CreateProductDiscountDto {
@@ -29,6 +31,7 @@ export class CreateProductDiscountDto {
   startDate: string;
 
   @IsDateString()
+  @Validate(IsEndDateAfterStartDate)
   endDate: string;
 
   @IsArray()
