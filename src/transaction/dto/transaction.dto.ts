@@ -30,6 +30,9 @@ export class AddressDTO {
   @IsString()
   state: string;
 
+  @IsString()
+  subdistrict: string;
+
   @IsPostalCode('any')
   postalCode: string;
 

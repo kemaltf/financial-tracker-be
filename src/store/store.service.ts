@@ -51,6 +51,13 @@ export class StoreService {
         id: true,
         name: true,
         description: true,
+        addressLine1: true,
+        addressLine2: true,
+        city: true,
+        phoneNumber: true,
+        state: true,
+        subdistrict: true,
+        postalCode: true,
         user: {
           id: true,
           name: true, // Hanya ambil id dan name dari userId
@@ -70,7 +77,7 @@ export class StoreService {
     console.log(user?.id);
 
     const store = await this.findOne(user.id, id);
-    console.log(store);
+
     if (store.user.id !== user.id) {
       throw new ForbiddenException('You can only update your own store');
     }

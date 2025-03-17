@@ -38,6 +38,9 @@ export class TransactionContact {
   @Column('varchar', { length: 100 })
   state: string;
 
+  @Column('varchar', { length: 100 })
+  subdistrict: string;
+
   @Column('varchar', { length: 20 })
   postalCode: string;
 

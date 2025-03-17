@@ -22,6 +22,7 @@ import { RajaOngkirModule } from './rajaongkir/raja-ongkir.module';
 import { CourierModule } from './courier/courier.module';
 import { VoucherModule } from './discount/voucher/voucher.module';
 import { ProductDiscountModule } from './discount/product-discount/product-discount.module';
+import { PaymentModule } from './payment/payment.module';
 
 @Module({
   imports: [
@@ -45,6 +46,7 @@ import { ProductDiscountModule } from './discount/product-discount/product-disco
     CourierModule,
     VoucherModule,
     ProductDiscountModule,
+    PaymentModule,
     ConfigModule.forRoot({
       envFilePath: '.env.development.local',
       isGlobal: true,
