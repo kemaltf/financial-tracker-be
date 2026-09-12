@@ -14,12 +14,15 @@ import { UpdateAccountDTO } from './dto/update-account.dto';
 import { SubAccount } from './sub-account.entity';
 import { GetUser } from '@app/common/decorators/get-user.decorator';
 import { User } from '@app/user/user.entity';
+import { ApiKeyAllowed, JwtOnly } from '@app/common/decorators';
 
+@ApiKeyAllowed()
 @Controller('accounts')
 export class subAccountController {
   constructor(private readonly subAccountService: SubAccountService) {}
 
   @Post()
+  @JwtOnly()
   async createAccount(
     @Body() createAccountDTO: CreateAccountDTO,
     @GetUser() user: User,
@@ -28,6 +31,7 @@ export class subAccountController {
   }
 
   @Put(':id')
+  @JwtOnly()
   async updateAccount(
     @Param('id') id: number,
     @Body() updateAccountDTO: UpdateAccountDTO,
@@ -53,6 +57,7 @@ export class subAccountController {
 
   // Menghapus akun berdasarkan ID
   @Delete(':id')
+  @JwtOnly()
   async deleteAccount(
     @Param('id') id: number,
     user: User,

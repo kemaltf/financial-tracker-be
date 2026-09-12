@@ -10,9 +10,11 @@ import {
 } from '@nestjs/common';
 import { TransactionService } from './transaction.service';
 import { TransactionDTO } from './dto/transaction.dto';
+import { ApiKeyAllowed, JwtOnly } from '@app/common/decorators';
 import { GetUser } from '@app/common/decorators/get-user.decorator';
 import { User } from '@app/user/user.entity';
 
+@ApiKeyAllowed()
 @Controller('transactions')
 export class TransactionController {
   constructor(private readonly transactionService: TransactionService) {}
@@ -80,6 +82,7 @@ export class TransactionController {
   }
 
   @Patch(':id')
+  @JwtOnly()
   async updateTransaction(
     @Param('id') transactionId: number,
     @Body() transactionDTO: TransactionDTO,
@@ -93,6 +96,7 @@ export class TransactionController {
   }
 
   @Delete(':id')
+  @JwtOnly()
   async remove(@Param('id') id: number, @GetUser() user: User) {
     console.log('kesini', user);
     return this.transactionService.deleteTransaction(id, user);

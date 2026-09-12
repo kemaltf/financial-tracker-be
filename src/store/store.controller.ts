@@ -12,12 +12,15 @@ import { CreateStoreDto } from './dto/create-store.dto';
 import { UpdateStoreDto } from './dto/update-store.dto';
 import { User } from 'src/user/user.entity';
 import { GetUser } from 'src/common/decorators/get-user.decorator';
+import { ApiKeyAllowed, JwtOnly } from '@app/common/decorators';
 
+@ApiKeyAllowed()
 @Controller('stores')
 export class StoreController {
   constructor(private readonly storeService: StoreService) {}
 
   @Post()
+  @JwtOnly()
   async create(@Body() createStoreDto: CreateStoreDto, @GetUser() user: User) {
     return this.storeService.create(createStoreDto, user);
   }
@@ -33,6 +36,7 @@ export class StoreController {
   }
 
   @Put(':id')
+  @JwtOnly()
   async update(
     @Param('id') id: number,
     @Body() updateStoreDto: UpdateStoreDto,
@@ -42,6 +46,7 @@ export class StoreController {
   }
 
   @Delete(':id')
+  @JwtOnly()
   async remove(@Param('id') id: number, @GetUser() user: User) {
     return this.storeService.remove(id, user);
   }

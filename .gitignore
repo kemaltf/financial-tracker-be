@@ -2,7 +2,8 @@
 /dist
 /node_modules
 /build
-/migrations
+/migrations/*
+!/migrations/1750000000000-CreateApiKeys.ts
 
 # Logs
 logs

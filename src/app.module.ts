@@ -23,6 +23,7 @@ import { CourierModule } from './courier/courier.module';
 import { VoucherModule } from './discount/voucher/voucher.module';
 import { ProductDiscountModule } from './discount/product-discount/product-discount.module';
 import { PaymentModule } from './payment/payment.module';
+import { ApiKeyModule } from './api-key/api-key.module';
 
 @Module({
   imports: [
@@ -47,6 +48,7 @@ import { PaymentModule } from './payment/payment.module';
     VoucherModule,
     ProductDiscountModule,
     PaymentModule,
+    ApiKeyModule,
     ConfigModule.forRoot({
       envFilePath: '.env.development.local',
       isGlobal: true,
